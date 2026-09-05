@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.ipynb_checkpoints/
+/data
+!/data/.gitkeep
+mlruns/
+outputs/
+*.ckpt
+*.safetensors
+.dvc/cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

@@ -1,0 +1,31 @@
+localize:
+  model: facebook/nllb-200-distilled-600M
+  batch_size: 64
+  target_variant: es-MX
+
+synth:
+  n_dialogues: 30000
+  seed: 42
+  personas: [cooperative, rushed, distracted, suspicious, hard_of_hearing, monosyllabic]
+  flows: [validate_contact, confirm_appointment]
+
+augment:
+  wer_levels: [0.05, 0.10, 0.15, 0.25]
+  variants_per_dialogue: 10
+  emphasis: alphanumeric        # emails and phone numbers are the failure point
+
+gold:
+  target_size: 8000
+  synthetic_ratio: 0.6          # swept in H4
+  replay_ratio: 0.15            # general instruction data, guards against rigidity (H5b)
+  splits: {train: 0.8, val: 0.1, test: 0.1}
+
+train:
+  base_model: Qwen/Qwen3-4B     # Apache-2.0. Qwen2.5-3B is research-license only.
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  learning_rate: 2.0e-4
+  epochs: 2
+  max_seq_length: 2048
+  early_stopping_patience: 2

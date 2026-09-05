@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassifyIntentOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["intent", "confidence"],
+  "properties": {
+    "intent": {
+      "enum": ["confirmed", "cannot_attend", "ambiguous", "call_rejected", "out_of_scope"],
+      "description": "call_rejected triggers the global interruption in both flows"
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "evidence":   { "type": ["string", "null"] }
+  }
+}

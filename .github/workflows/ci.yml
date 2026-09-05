@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -e ".[dev]"
+      - run: ruff check src dags tests
+      - run: mypy src
+      - run: pytest tests/unit -q
+
+  evaluate:
+    # Runs the frozen eval set on every PR and comments the metrics.
+    # This is what makes the repo an MLOps project rather than tidy scripts.
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -e ".[dev,pipeline]"
+      - name: Pull frozen eval set
+        run: dvc pull evaluation/eval_set
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DVC_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DVC_SECRET_KEY }}
+      - name: Evaluate registered model
+        run: python -m src.pipeline.evaluate.run --report evaluation/reports/pr.md
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with: { path: evaluation/reports/pr.md }

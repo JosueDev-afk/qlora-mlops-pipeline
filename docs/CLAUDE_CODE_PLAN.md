@@ -1,0 +1,58 @@
+# Working with Claude Code on this repo
+
+## Before you start
+
+```bash
+git init && git add -A && git commit -m "chore: scaffold"
+git branch -M main
+```
+
+Commit the scaffold **first**. That gives Claude Code a stable base and gives you
+a diff to review against.
+
+## Rules of engagement
+
+- One task per session, one vertical slice: a module plus its tests.
+- Never "implement the pipeline". Always name the file.
+- Review every diff before committing. If it invents a convention, point at
+  `CLAUDE.md` instead of accepting it.
+- When a task depends on a design decision, paste the relevant section of the
+  Phase 2 document into the prompt.
+
+## Suggested order (Ola 1, weeks 1–4)
+
+Contracts and pure functions first — they are testable without infrastructure
+and they pin down the interfaces everything else depends on.
+
+| # | Task | Why first |
+|---|---|---|
+| 1 | `src/pipeline/common/`: config loader, structured logging, prompt loader with hash | Everything imports this |
+| 2 | `src/agent/llm/structured.py`: schema validation, `parse_or_ambiguous` | Rule 4 lives here |
+| 3 | `src/pipeline/common/normalizers.py`: spelled-email → address, spoken digits → E.164, name variants | Pure functions, high test value, **the actual hard part of the project** |
+| 4 | `tests/unit/test_normalizers.py` with es-MX cases | Write the cases yourself; you are the native speaker |
+| 5 | `infra/docker-compose.yml`: airflow, spark, hdfs/minio, kafka, postgres, mlflow, metabase | Unblocks everything else |
+| 6 | `src/agent/speech/elevenlabs.py` implementing the base interfaces | Keeps the provider behind the abstraction |
+| 7 | `src/agent/graphs/flow_validate_contact.py` + node stubs | Flow 1 end to end with the base model |
+| 8 | `src/agent/telemetry/producer.py` + simulated call producer | Feeds the Kafka path |
+| 9 | `dags/ingest_corpus.py` + `src/pipeline/ingest/` | First real data |
+| 10 | `notebooks/02_asr_error_profile.ipynb` | Calibrates augmentation. **Do this yourself**, it is judgement work |
+
+## Tasks to keep for yourself
+
+Claude Code is good at code, not at these:
+
+- Building and freezing the eval set — needs a native speaker's judgement
+- Naturalness QA of localized dialogues — the whole point is that a human decides
+- Choosing the personas and variation axes for synthetic generation
+- Reading and interpreting license terms
+- Deciding when a hypothesis is answered
+
+## Prompt shape that works
+
+> Implement `src/pipeline/common/normalizers.py`: a function that converts a
+> spelled-out Spanish email transcription into an address. Handle "arroba",
+> "punto", "guion bajo", "todo junto", and ASR fragmentation. Pure function, no
+> I/O. Write `tests/unit/test_normalizers.py` first with at least 10 cases in
+> es-MX, including three that should fail to parse. Follow CLAUDE.md.
+
+Specific file, specific behaviour, tests first, explicit reference to the rules.

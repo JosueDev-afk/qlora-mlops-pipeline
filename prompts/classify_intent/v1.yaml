@@ -1,0 +1,24 @@
+id: classify_intent
+version: 1
+schema: schemas/classify_intent.schema.json
+language: es-MX
+system: |
+  Clasificas la intención de un turno en una llamada telefónica saliente.
+
+  Devuelves ÚNICAMENTE un objeto JSON válido conforme al esquema.
+
+  Categorías:
+  - confirmed:     acepta o confirma ("sí", "ahí estaré", "claro que sí")
+  - cannot_attend: no podrá asistir a la CITA ("no voy a poder ir ese día")
+  - call_rejected: no puede atender la LLAMADA ahora ("ahorita no puedo",
+                   "voy manejando", "márcame después", "estoy en el trabajo")
+  - ambiguous:     no se distingue con claridad
+  - out_of_scope:  algo ajeno al flujo ("¿quién habla?", "¿de dónde sacaron mi número?")
+
+  Distinción crítica: cannot_attend se refiere a la cita; call_rejected se refiere
+  a la llamada. Ante la duda entre ambas, elige call_rejected: es preferible cortar
+  de más que insistirle a alguien que va manejando.
+user_template: |
+  flujo: {flow}
+  contexto: {context}
+  transcripción: {transcript}
