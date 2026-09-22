@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IsRealInterruptionOutput",
+  "description": "Task D. Runs on ASR partials while the agent is still speaking. Decides whether to cancel TTS.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["interruption", "confidence"],
+  "properties": {
+    "interruption": {
+      "type": "boolean",
+      "description": "true = real interruption, cancel TTS. false = backchannel ('ajá', 'mhm'), keep speaking."
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "kind": {
+      "enum": ["backchannel", "correction", "objection", "rejection", "unclear"],
+      "description": "rejection short-circuits to handle_rejection in either flow"
+    }
+  }
+}

@@ -8,10 +8,31 @@ orchestration, versioning and evaluation. `src/agent/` is the reference runtime
 that consumes the resulting adapter — it exists so the model can be evaluated
 and demonstrated end to end, not as the product.
 
-Two conversational flows, in Mexican Spanish, over the phone:
+Two conversational flows, in Mexican Spanish:
 
 1. **Contact data validation** — confirm and correct name, phone and email, field by field.
 2. **Appointment confirmation** — call 30 minutes before an appointment; reschedule if needed.
+
+## Two models, two layers
+
+Deciding and generating are different problems, so they get different models:
+
+| Model | Tasks | Latency |
+|---|---|---|
+| **Laya-multilingual** (322M, non-autoregressive, fine-tuned) | classify intent, real interruption vs. backchannel | ~33 ms |
+| **Qwen3-4B + QLoRA** (generative) | extract contact entities, normalize datetimes | < 500 ms |
+
+Laya runs first on every turn and decides whether Qwen is needed at all, so a
+plain "sí, ahí estaré" never pays the generative model's latency.
+
+The runtime also has two layers, because LangGraph is not real-time:
+
+- **Layer 1 — audio** (Pipecat over WebRTC): VAD, endpointing, barge-in. Continuous.
+- **Layer 2 — LangGraph**: one invocation per completed turn. Deterministic.
+
+**The voice interface is a web demo, not telephony**, and the hypotheses are
+evaluated offline on transcripts — so the measurements never depend on the audio
+layer, and cutting the demo does not endanger the evaluation.
 
 ---
 
@@ -63,9 +84,15 @@ make localize    # translate_localize       → silver (es-MX)
 make generate    # generate_combinatorial   → synthetic dialogues
 make augment     # augment_asr_noise        → augmented pool
 make gold        # build_gold_dataset       → gold + dvc push + tag
-make train       # train_qlora              → MLflow run
+make train       # train_qlora              → generative model (tasks A, C)
+make train-laya  # train_laya               → decision model (tasks B, D)
+make calibrate   # fit temperatures         → fails if ECE > 0.10
 make eval        # evaluate_model           → metrics vs frozen eval set
 ```
+
+`train` and `train-laya` consume the **same gold tag**, so any performance
+difference between the two models is attributable to the model, not the data.
+That is what makes the central hypothesis a fair comparison.
 
 ## Repository layout
 
@@ -75,6 +102,9 @@ make eval        # evaluate_model           → metrics vs frozen eval set
 - `prompts/` — versioned artifacts. A prompt change is a new experiment.
 - `schemas/` — JSON Schema for every model output. Invalid output is treated as `ambiguous`.
 - `evaluation/eval_set/` — **frozen**. Do not edit after week 3.
+- `src/agent/decision/` — Laya behind a provider-agnostic interface, so the
+  architecture can fall back to a single model if the eval set does not support
+  the two-model split.
 
 ## Reproducing any result
 

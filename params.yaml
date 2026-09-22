@@ -8,6 +8,10 @@ synth:
   seed: 42
   personas: [cooperative, rushed, distracted, suspicious, hard_of_hearing, monosyllabic]
   flows: [validate_contact, confirm_appointment]
+  # Task D: overlapped fragments, generated with their position inside the
+  # agent's utterance — that is the context the model sees in production.
+  backchannels: ["ajá", "mhm", "sí sí", "órale", "ándele", "okey", "va", "claro"]
+  real_interruptions: ["no, espérese", "ese no es mi correo", "perdón, me equivoqué", "a ver, repítame"]
 
 augment:
   wer_levels: [0.05, 0.10, 0.15, 0.25]
@@ -15,6 +19,9 @@ augment:
   emphasis: alphanumeric        # emails and phone numbers are the failure point
 
 gold:
+  tag: gold-v1                  # single source of truth: train_qlora and
+                                # train_laya must consume the same tag for H1
+                                # to be a comparison of models, not of data
   target_size: 8000
   synthetic_ratio: 0.6          # swept in H4
   replay_ratio: 0.15            # general instruction data, guards against rigidity (H5b)
@@ -29,3 +36,27 @@ train:
   epochs: 2
   max_seq_length: 2048
   early_stopping_patience: 2
+
+# Decision model (Tasks B and D). Trained from the same gold tag as the
+# generative model so Hypothesis 1 is a fair comparison.
+laya:
+  checkpoint: convaiinnovations/laya-multilingual   # never the English root
+  learning_rate: 1.0e-5
+  epochs: 3
+  batch_size: 32
+  max_len: 1024
+  head_max_len: 256
+
+calibration:
+  method: temperature_scaling
+  per: [question_type, n_options]   # one temperature per question shape
+  max_ece: 0.10                     # the DAG fails above this
+  holdout_fraction: 0.2
+
+# Real-time audio layer. Demo only: hypotheses are evaluated offline on
+# transcripts, so this layer never affects the measurements.
+audio:
+  transport: webrtc
+  framework: pipecat
+  interruption_threshold: 0.6       # set from the PR curve, not by hand
+  rejection_threshold: 0.5          # tuned for recall >= 0.95 (H6)

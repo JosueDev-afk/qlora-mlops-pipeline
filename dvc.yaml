@@ -27,3 +27,15 @@ stages:
     deps: [src/pipeline/datasets, data/augmented]
     params: [gold.synthetic_ratio, gold.replay_ratio, gold.target_size]
     outs: [data/gold]
+
+  train_laya:
+    cmd: python -m src.pipeline.train.laya --dataset data/gold --out models/laya
+    deps: [src/pipeline/train/laya.py, data/gold]
+    params: [laya.checkpoint, laya.learning_rate, laya.epochs]
+    outs: [models/laya]
+
+  calibrate_laya:
+    cmd: python -m src.pipeline.calibrate.fit_temperature --model models/laya --out models/laya/temperatures.json
+    deps: [src/pipeline/calibrate, models/laya]
+    params: [calibration.method, calibration.max_ece]
+    metrics: [evaluation/reports/calibration.json]

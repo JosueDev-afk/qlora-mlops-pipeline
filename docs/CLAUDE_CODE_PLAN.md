@@ -32,10 +32,13 @@ and they pin down the interfaces everything else depends on.
 | 4 | `tests/unit/test_normalizers.py` with es-MX cases | Write the cases yourself; you are the native speaker |
 | 5 | `infra/docker-compose.yml`: airflow, spark, hdfs/minio, kafka, postgres, mlflow, metabase | Unblocks everything else |
 | 6 | `src/agent/speech/elevenlabs.py` implementing the base interfaces | Keeps the provider behind the abstraction |
+| 6b | `src/agent/decision/laya_model.py` implementing `DecisionModel` | Preload, multilingual checkpoint, temperature application |
 | 7 | `src/agent/graphs/flow_validate_contact.py` + node stubs | Flow 1 end to end with the base model |
 | 8 | `src/agent/telemetry/producer.py` + simulated call producer | Feeds the Kafka path |
 | 9 | `dags/ingest_corpus.py` + `src/pipeline/ingest/` | First real data |
 | 10 | `notebooks/02_asr_error_profile.ipynb` | Calibrates augmentation. **Do this yourself**, it is judgement work |
+| 11 | `src/pipeline/calibrate/fit_temperature.py` + tests | Temperature scaling per question shape; the ECE gate |
+| 12 | `src/agent/demo/` (Pipecat over WebRTC) | Last, and recutable — the audio layer never blocks evaluation |
 
 ## Tasks to keep for yourself
 
@@ -46,6 +49,8 @@ Claude Code is good at code, not at these:
 - Choosing the personas and variation axes for synthetic generation
 - Reading and interpreting license terms
 - Deciding when a hypothesis is answered
+- Deciding whether Laya actually beats Qwen on Task B — that call comes from the
+  frozen eval set, and reverting to a single model is a legitimate outcome
 
 ## Prompt shape that works
 

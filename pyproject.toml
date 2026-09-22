@@ -35,6 +35,7 @@ train = [
     "accelerate>=0.31",
     "xgboost>=2.0",
     "scikit-learn>=1.5",
+    "laya>=0.1",                # decision model, Tasks B and D
 ]
 # Zone 2 — runtime. Latency-sensitive: no Spark, no torch.
 agent = [
@@ -45,6 +46,8 @@ agent = [
     "confluent-kafka>=2.4",
     "elevenlabs>=1.3",
     "openai>=1.35",             # OpenAI-compatible client for vLLM
+    "laya>=0.1",                # decision model, served preloaded
+    "pipecat-ai>=0.0.50",       # real-time audio layer over WebRTC (demo)
 ]
 dev = [
     "pytest>=8.2",

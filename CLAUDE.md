@@ -17,10 +17,24 @@ that consumes the adapter so the model can be evaluated and demonstrated. When i
 doubt about where code belongs, ask whether it produces the model (`src/pipeline/`)
 or consumes it (`src/agent/`).
 
-Two phone flows:
+Two flows:
 
 1. **`validate_contact`** — confirm and correct name, phone and email, field by field.
 2. **`confirm_appointment`** — call 30 min before an appointment; reschedule if needed.
+
+**Two models, on purpose.** Deciding and generating are different problems:
+
+| Model | Tasks | Latency |
+|---|---|---|
+| **Laya-multilingual** (322M, non-autoregressive) | B `classify_intent`, D `is_real_interruption` | ~33 ms |
+| **Qwen3-4B + QLoRA** (generative) | A `extract_entity`, C `parse_datetime` | < 500 ms |
+
+Laya runs first on every turn and decides whether Qwen is needed at all.
+
+**Two layers, on purpose.** LangGraph is not real-time — it runs once per turn.
+Pauses, interruptions and barge-in happen in milliseconds, inside and between
+turns. Layer 1 (Pipecat over WebRTC) owns the audio; layer 2 (LangGraph) owns
+the turn. Code for the two lives in `src/agent/` but never blurs the boundary.
 
 The deliverable is **the pipeline**, not the model. Reproducibility and lineage
 matter more than squeezing the last point of accuracy.
@@ -66,24 +80,38 @@ not be able to write to the database or move an appointment.
 If output fails schema validation, treat it as `ambiguous` and retry. A parse
 failure must never crash a live call.
 
-### 5. The eval set is frozen
+### 5. Laya: multilingual, preloaded, calibrated
+
+Three rules, all from the model card, all easy to get wrong:
+
+- **Never the English root checkpoint.** It collapses on non-Latin script *while
+  staying confident*, so confidence gating cannot save you. Spanish always uses
+  `laya-multilingual`.
+- **Never lazy-load in a service.** Without preload the router rebuilds the
+  checkpoint on every language switch (7–10 s measured). Always
+  `Router(preload=True)` at start-up, never per request.
+- **Never threshold on raw probabilities.** Laya ships over-confident. Apply the
+  temperatures fitted by the `calibrate_laya` DAG before any comparison against
+  a threshold. `rejection_threshold` is meaningless on uncalibrated output.
+
+### 6. The eval set is frozen
 
 `evaluation/eval_set/` is immutable after week 3. Do not add, edit, remove or
 regenerate its contents. Do not generate eval data with an LLM. If you think the
 eval set needs to change, stop and ask.
 
-### 6. Notebooks are never imported
+### 7. Notebooks are never imported
 
 `notebooks/` is exploration only. Nothing in `src/` or `dags/` may import from
 it. When notebook code proves useful, move it to `src/` with a test.
 
-### 7. Prompts are versioned artifacts
+### 8. Prompts are versioned artifacts
 
 Never edit a prompt file in place. Create a new version (`v2.yaml`) and register
 its hash. A prompt change is a new experiment — this is what Hypothesis 3
 measures.
 
-### 8. Large files go to DVC, not Git
+### 9. Large files go to DVC, not Git
 
 Anything in `data/`, model checkpoints, adapters, audio. Pre-commit blocks files
 over 500 KB.
@@ -93,12 +121,19 @@ over 500 KB.
 ## Architecture
 
 ```
-dags/           orchestration only
-src/pipeline/   data construction + training  (Spark, GPU)
-src/agent/      runtime                       (latency-sensitive, no Spark, no torch)
-prompts/        versioned prompt artifacts
-schemas/        JSON Schema per model output
-evaluation/     frozen eval set + reports
+dags/               orchestration only
+src/pipeline/       data construction + training  (Spark, GPU)
+src/agent/          runtime  (latency-sensitive, no Spark, no torch)
+  ├─ speech/        layer 1: STT/TTS behind a provider-agnostic interface
+  ├─ decision/      layer 1+2: Laya behind a provider-agnostic interface
+  ├─ llm/           layer 2: Qwen via an OpenAI-compatible client
+  ├─ graphs/        layer 2: the two LangGraph state machines
+  ├─ nodes/, tools/ layer 2: nodes emit JSON; tools perform writes
+  ├─ telemetry/     call events to Kafka; feeds the analytics path
+  └─ demo/          layer 1 entrypoint (Pipecat/WebRTC). Demo only, recutable
+prompts/            versioned prompt and typed-question artifacts
+schemas/            JSON Schema per model output
+evaluation/         frozen eval set + reports
 ```
 
 The two `src/` zones have separate dependency groups in `pyproject.toml`
@@ -124,6 +159,11 @@ ElevenLabs SDK directly from a node or graph.
 | Vector search reserved for unpredictable Q&A only | Filtered by `company_id` |
 | After 2 failed reprompts: **mark unvalidated and move on** | Does not escalate to a human, does not end the call |
 | `call_rejected` ends the call immediately | One rejection signal is enough. The agent never insists |
+| Tasks B and D go to **Laya**, A and C to **Qwen** | Deciding and generating have opposite latency profiles |
+| Laya runs **before** Qwen on every turn | A plain "sí, ahí estaré" costs ~33 ms instead of ~500 ms |
+| Temperature calibration is **mandatory**, not optional | Without it the rejection threshold has no meaning (H6) |
+| Audio layer is **demo only** | Hypotheses are evaluated offline on transcripts. Never let demo work block evaluation work |
+| Transport is **WebRTC**, not telephony | Removes an external dependency that teaches nothing. Migrating is a Pipecat transport swap |
 
 **Rejection disambiguation:** `cannot_attend` refers to the *appointment*;
 `call_rejected` refers to the *call*. When ambiguous between the two, choose
@@ -150,6 +190,7 @@ is driving.
 make up      make init     make test     make lint
 make ingest  make curate   make localize make generate
 make augment make gold     make train    make eval
+make train-laya   make calibrate   make demo      make demo-text
 ```
 
 ## Definition of done
