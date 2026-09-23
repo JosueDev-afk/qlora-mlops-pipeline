@@ -23,20 +23,18 @@ ingest:    ## Download public corpora into bronze
 	$(DAG) ingest_corpus
 curate:    ## Normalize, scrub PII, deduplicate → silver
 	$(DAG) curate_spark
-localize:  ## Translate EN→ES and localize to es-MX
-	$(DAG) translate_localize
-generate:  ## Generate synthetic dialogues combinatorially
+generate:  ## Generate synthetic dialogues by code from their labels
 	$(DAG) generate_combinatorial
-augment:   ## Inject calibrated ASR noise
+augment:   ## Inject calibrated ASR noise (rule-based)
 	$(DAG) augment_asr_noise
 gold:      ## Build, version and tag the gold dataset
 	$(DAG) build_gold_dataset
-train:     ## Fine-tune the generative model with QLoRA (tasks A, C)
+train:     ## Fine-tune the generative model with QLoRA (tasks A, C; B as the H1 arm)
 	$(DAG) train_qlora
 train-laya: ## Fine-tune the decision model (tasks B, D)
 	$(DAG) train_laya
-calibrate: ## Fit temperature per question shape; fails if ECE > 0.10
-	$(DAG) train_laya --conf '{"only":"calibrate"}'
+calibrate: ## Re-fit Laya temperatures: make calibrate RUN_ID=<train_laya run>
+	$(DAG) calibrate_laya --conf '{"run_id":"$(RUN_ID)"}'
 eval:      ## Evaluate against the frozen eval set
 	$(DAG) evaluate_model
 
@@ -58,4 +56,4 @@ lint:      ## Lint and type-check
 fmt:       ## Auto-format
 	ruff format src dags tests && ruff check --fix src dags tests
 
-.PHONY: help up down clean logs init ingest curate localize generate augment gold train train-laya calibrate eval serve demo demo-text test test-all lint fmt
+.PHONY: help up down clean logs init ingest curate generate augment gold train train-laya calibrate eval serve demo demo-text test test-all lint fmt

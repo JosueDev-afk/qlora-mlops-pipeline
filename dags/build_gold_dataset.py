@@ -25,7 +25,11 @@ DEFAULT_ARGS = {"owner": "data", "retries": 1}
 def build_gold_dataset():
     @task
     def filter_and_balance() -> str:
-        """LLM-as-judge filtering, stratified balancing, train/val/test split."""
+        """Schema validation, heuristics, stratified balancing, train/val/test split.
+
+        No LLM-as-judge: examples are generated from their labels, so a judge
+        would add cost without adding information.
+        """
         return build_gold.run(params_path="params.yaml")
 
     @task

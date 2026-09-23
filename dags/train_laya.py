@@ -1,16 +1,19 @@
-"""Fine-tune the decision model (Tasks B and D) and calibrate it.
+"""Fine-tune the decision model (Tasks B and D), then hand off to calibration.
 
 Runs in parallel with train_qlora against the SAME gold dataset tag, so any
 performance difference between the two models is attributable to the model and
 not to the data. That is what makes Hypothesis 1 a fair comparison.
+
+Calibration is its own DAG (calibrate_laya) so temperatures can be re-fitted
+for an existing run without retraining.
 """
 
 from __future__ import annotations
 
 import pendulum
 from airflow.decorators import dag, task
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
-from src.pipeline.calibrate import fit_temperature
 from src.pipeline.train import laya
 
 DEFAULT_ARGS = {"owner": "ml", "retries": 1}
@@ -38,16 +41,12 @@ def train_laya():
         """
         return laya.train(params_path="params.yaml")
 
-    @task
-    def calibrate(run_id: str) -> str:
-        """Fit one temperature per (question type, option count) on held-out data.
-
-        Fails the DAG if ECE stays above `calibration.max_ece`: an uncalibrated
-        model cannot be used to gate `handle_rejection`.
-        """
-        return fit_temperature.run(run_id=run_id, params_path="params.yaml")
-
-    calibrate(fine_tune())
+    run_id = fine_tune()
+    run_id >> TriggerDagRunOperator(
+        task_id="trigger_calibrate_laya",
+        trigger_dag_id="calibrate_laya",
+        conf={"run_id": "{{ ti.xcom_pull(task_ids='fine_tune') }}"},
+    )
 
 
 train_laya()

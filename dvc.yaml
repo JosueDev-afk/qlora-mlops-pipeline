@@ -4,28 +4,22 @@ stages:
     deps: [src/pipeline/curate, data/bronze]
     outs: [data/silver]
 
-  localize:
-    cmd: python -m src.pipeline.localize.run --in data/silver --out data/silver_es
-    deps: [src/pipeline/localize, data/silver]
-    params: [localize.model, localize.batch_size]
-    outs: [data/silver_es]
-
   generate:
     cmd: python -m src.pipeline.synth.run --out data/synthetic
     deps: [src/pipeline/synth]
-    params: [synth.n_dialogues, synth.personas, synth.seed]
+    params: [synth.n_dialogues, synth.personas, synth.seed, synth.carrier_phrases]
     outs: [data/synthetic]
 
   augment:
     cmd: python -m src.pipeline.augment.run --out data/augmented
-    deps: [src/pipeline/augment, data/silver_es, data/synthetic]
-    params: [augment.wer_levels, augment.variants_per_dialogue]
+    deps: [src/pipeline/augment, data/silver, data/synthetic]
+    params: [augment.method, augment.wer_levels, augment.variants_per_dialogue]
     outs: [data/augmented]
 
   build_gold:
     cmd: python -m src.pipeline.datasets.build_gold --out data/gold
     deps: [src/pipeline/datasets, data/augmented]
-    params: [gold.synthetic_ratio, gold.replay_ratio, gold.target_size]
+    params: [gold.template_ratio, gold.replay_ratio, gold.target_size]
     outs: [data/gold]
 
   train_laya:
@@ -36,6 +30,6 @@ stages:
 
   calibrate_laya:
     cmd: python -m src.pipeline.calibrate.fit_temperature --model models/laya --out models/laya/temperatures.json
-    deps: [src/pipeline/calibrate, models/laya]
-    params: [calibration.method, calibration.max_ece]
+    deps: [src/pipeline/calibrate, models/laya, data/calibration]
+    params: [calibration.method, calibration.max_ece, calibration.split]
     metrics: [evaluation/reports/calibration.json]

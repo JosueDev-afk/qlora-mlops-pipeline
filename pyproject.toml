@@ -22,8 +22,6 @@ pipeline = [
     "dvc[s3]>=3.51",
     "mlflow>=2.13",
     "apache-airflow==2.9.2",
-    "spacy>=3.7",
-    "sentence-transformers>=3.0",
     "datasketch>=1.6",          # MinHash / LSH
 ]
 train = [
