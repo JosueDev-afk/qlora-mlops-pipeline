@@ -80,6 +80,13 @@ not be able to write to the database or move an appointment.
 If output fails schema validation, treat it as `ambiguous` and retry. A parse
 failure must never crash a live call.
 
+**Exception — Task D (`is_real_interruption`).** It runs on ASR partials while
+the agent speaks: there is no retry (the next partial is the retry) and a
+boolean has no `ambiguous` value. Any failure — invalid output, timeout, error —
+resolves to an interruption (`src/agent/decision/interruption.py`). The
+interruption threshold must stay below 0.5, so an unsure model stops talking
+instead of talking over someone.
+
 ### 5. Laya: multilingual, preloaded, calibrated
 
 Three rules, all from the model card, all easy to get wrong:

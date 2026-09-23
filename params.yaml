@@ -71,5 +71,6 @@ serving:
 audio:
   transport: webrtc
   framework: pipecat
-  interruption_threshold: 0.6       # set from the PR curve, not by hand
+  interruption_threshold: 0.4       # P(real) to stop TTS; must stay < 0.5 (when in doubt,
+                                    # interrupt). Replace with the PR-curve value
   rejection_threshold: 0.5          # tuned for recall >= 0.95 (H6)
