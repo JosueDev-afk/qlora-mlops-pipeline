@@ -131,6 +131,7 @@ src/agent/          runtime  (latency-sensitive, no Spark, no torch)
   ├─ nodes/, tools/ layer 2: nodes emit JSON; tools perform writes
   ├─ telemetry/     call events to Kafka; feeds the analytics path
   └─ demo/          layer 1 entrypoint (Pipecat/WebRTC). Demo only, recutable
+src/common/         shared by both zones (prompt loader); base dependencies only
 prompts/            versioned prompt and typed-question artifacts
 schemas/            JSON Schema per model output
 evaluation/         frozen eval set + reports
@@ -138,7 +139,8 @@ evaluation/         frozen eval set + reports
 
 The two `src/` zones have separate dependency groups in `pyproject.toml`
 (`pipeline`, `train`, `agent`). Do not import across them: `src/agent/` must
-never import `pyspark`, `torch` or `datasets`.
+never import `pyspark`, `torch` or `datasets`. `src/common/` sits outside both
+zones and may only use `[project].dependencies`, so either zone can import it.
 
 `src/agent/speech/base.py` defines provider-agnostic `SpeechToText` /
 `TextToSpeech` interfaces. ElevenLabs is one implementation. Never call the
@@ -151,7 +153,7 @@ ElevenLabs SDK directly from a node or graph.
 | Decision | Reason |
 |---|---|
 | Base model is **Qwen3-4B** | Apache-2.0. Qwen2.5-3B is research-license, non-commercial |
-| Second arm is **Qwen2.5-1.5B-Instruct** | Minimum viable size (H5a) |
+| Second arm is **Qwen3-1.7B** | Minimum viable size (H5a). Same family as the 4B, so only size changes; Qwen2.5-1.5B would confound size with model generation |
 | **QLoRA**, r=16, 1–2 epochs, early stopping | Narrow tasks risk rigidity via catastrophic forgetting, not classic overfitting |
 | **10–20 % general-instruction replay** in the mix | Preserves out-of-scope handling (H5b). Not optional |
 | STT/TTS are **bought**, not built | See `docs/` — build vs. buy is settled |
@@ -164,6 +166,14 @@ ElevenLabs SDK directly from a node or graph.
 | Temperature calibration is **mandatory**, not optional | Without it the rejection threshold has no meaning (H6) |
 | Audio layer is **demo only** | Hypotheses are evaluated offline on transcripts. Never let demo work block evaluation work |
 | Transport is **WebRTC**, not telephony | Removes an external dependency that teaches nothing. Migrating is a Pipecat transport swap |
+| Synthetic data is generated **by code** from its label | Labels are correct by construction and cost nothing per example, so there is no LLM-as-judge filter |
+| **No translation or localization** of English corpora | Their domains (hotels, restaurants) do not teach alphanumeric capture, they add translationese, and they were most of the GPU/API cost |
+| The only LLM-written corpus text is the **carrier-phrase bank** (1,000–2,000, human-reviewed) | Gemini on the paid tier (Cloud credits) or Qwen3 locally. Never the free tier: Google uses that data |
+| Laya temperatures are fitted on a **human calibration split**, never on gold | Gold is mostly synthetic; a calibration fitted there may not transfer to real speech (H6) |
+| The eval set includes **Task D** and **≥ 100 `call_rejected` turns** before freezing | Nothing can be added after week 3; with 40 rejections a 0.95 recall has a CI of ~0.84–0.99 |
+| Qwen3-4B is also trained on **Task B**, only as the H1 arm | Without it H1 has no generative arm. At runtime Task B stays on Laya |
+| Latency is measured **to complete JSON** on a fixed **L4** | LangGraph needs the whole output to act; p95s are only comparable on the same hardware |
+| Qwen3 runs with **thinking disabled** | Reasoning tokens would spend the 500 ms budget before the JSON |
 
 **Rejection disambiguation:** `cannot_attend` refers to the *appointment*;
 `call_rejected` refers to the *call*. When ambiguous between the two, choose
@@ -188,9 +198,9 @@ is driving.
 
 ```bash
 make up      make init     make test     make lint
-make ingest  make curate   make localize make generate
-make augment make gold     make train    make eval
-make train-laya   make calibrate   make demo      make demo-text
+make ingest  make curate   make generate make augment
+make gold    make train    make eval
+make train-laya   make calibrate RUN_ID=...   make demo   make demo-text
 ```
 
 ## Definition of done
