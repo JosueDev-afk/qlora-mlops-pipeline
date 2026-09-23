@@ -102,7 +102,9 @@ That is what makes the central hypothesis a fair comparison.
 - `prompts/` — versioned artifacts. A prompt change is a new experiment.
 - `schemas/` — JSON Schema for every model output. Invalid output is treated as `ambiguous`.
 - `evaluation/eval_set/` — **frozen**. Do not edit after week 3.
-- `src/agent/decision/` — Laya behind a provider-agnostic interface, so the
+- `src/serving/` — model servers (Qwen via vLLM, Laya preloaded). The agent reaches
+  both over HTTP, so torch never enters `src/agent/`.
+- `src/agent/decision/` — Laya client behind a provider-agnostic interface, so the
   architecture can fall back to a single model if the eval set does not support
   the two-model split.
 

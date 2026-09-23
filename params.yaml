@@ -62,7 +62,8 @@ calibration:
   target_recall: 0.95
   split: data/calibration           # human-annotated; never gold (mostly synthetic), never the eval set
 
-# Latency is only comparable on fixed hardware.
+# Latency is only comparable on fixed hardware and a shared serving path:
+# both models run in src/serving/ and are reached over HTTP.
 serving:
   reference_gpu: L4
   budget_ms:

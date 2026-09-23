@@ -44,8 +44,13 @@ agent = [
     "confluent-kafka>=2.4",
     "elevenlabs>=1.3",
     "openai>=1.35",             # OpenAI-compatible client for vLLM
-    "laya>=0.1",                # decision model, served preloaded
     "pipecat-ai>=0.0.50",       # real-time audio layer over WebRTC (demo)
+]
+# Zone 3 — model servers. torch lives here, never in the agent, which calls
+# both models over HTTP on the same reference GPU (fair latency for H1).
+serve = [
+    "vllm>=0.8",                # Qwen + QLoRA adapter, OpenAI-compatible API
+    "laya>=0.1",                # decision model, router preloaded at start-up
 ]
 dev = [
     "pytest>=8.2",

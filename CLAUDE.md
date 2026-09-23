@@ -137,22 +137,25 @@ dags/               orchestration only
 src/pipeline/       data construction + training  (Spark, GPU)
 src/agent/          runtime  (latency-sensitive, no Spark, no torch)
   ├─ speech/        layer 1: STT/TTS behind a provider-agnostic interface
-  ├─ decision/      layer 1+2: Laya behind a provider-agnostic interface
+  ├─ decision/      layer 1+2: Laya client behind a provider-agnostic interface
   ├─ llm/           layer 2: Qwen via an OpenAI-compatible client
   ├─ graphs/        layer 2: the two LangGraph state machines
   ├─ nodes/, tools/ layer 2: nodes emit JSON; tools perform writes
   ├─ telemetry/     call events to Kafka; feeds the analytics path
   └─ demo/          layer 1 entrypoint (Pipecat/WebRTC). Demo only, recutable
-src/common/         shared by both zones (prompt loader); base dependencies only
+src/serving/        model servers: Qwen via vLLM, Laya preloaded  (GPU, torch)
+src/common/         shared by all zones (prompt loader); base dependencies only
 prompts/            versioned prompt and typed-question artifacts
 schemas/            JSON Schema per model output
 evaluation/         frozen eval set + reports
 ```
 
-The two `src/` zones have separate dependency groups in `pyproject.toml`
-(`pipeline`, `train`, `agent`). Do not import across them: `src/agent/` must
-never import `pyspark`, `torch` or `datasets`. `src/common/` sits outside both
-zones and may only use `[project].dependencies`, so either zone can import it.
+The `src/` zones have separate dependency groups in `pyproject.toml`
+(`pipeline`, `train`, `agent`, `serve`). Do not import across them: `src/agent/`
+must never import `pyspark`, `torch` or `datasets`, and reaches both models over
+HTTP. `src/serving/` is where torch runs at inference time. `src/common/` sits
+outside the zones and may only use `[project].dependencies`, so any zone can
+import it.
 
 `src/agent/speech/base.py` defines provider-agnostic `SpeechToText` /
 `TextToSpeech` interfaces. ElevenLabs is one implementation. Never call the
@@ -185,6 +188,7 @@ ElevenLabs SDK directly from a node or graph.
 | The eval set includes **Task D** and **≥ 100 `call_rejected` turns** before freezing | Nothing can be added after week 3; with 40 rejections a 0.95 recall has a CI of ~0.84–0.99 |
 | Qwen3-4B is also trained on **Task B**, only as the H1 arm | Without it H1 has no generative arm. At runtime Task B stays on Laya |
 | Latency is measured **to complete JSON** on a fixed **L4** | LangGraph needs the whole output to act; p95s are only comparable on the same hardware |
+| Laya and Qwen are both **served over HTTP** from `src/serving/` | Keeps `src/agent/` torch-free, and H1 compares latencies over the same serving path |
 | Qwen3 runs with **thinking disabled** | Reasoning tokens would spend the 500 ms budget before the JSON |
 
 **Rejection disambiguation:** `cannot_attend` refers to the *appointment*;

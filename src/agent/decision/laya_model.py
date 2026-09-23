@@ -1,35 +1,28 @@
-"""Laya-multilingual decision model.
+"""Laya-multilingual decision model, reached over HTTP.
 
-Three non-negotiables, taken from the model card and encoded here so they
-cannot be forgotten at deploy time:
+The model runs in `src/serving/`, which owns two of the model card's rules:
+always the multilingual checkpoint (the English root collapses on non-Latin
+script while staying confident) and always preloaded (without it the router
+rebuilds the checkpoint on every language switch, 7-10 s). Keeping the model
+out of process keeps `src/agent/` free of torch.
 
-1. Always the MULTILINGUAL checkpoint. The English root collapses on non-Latin
-   script while staying confident, so confidence gating cannot save you. For
-   Spanish the multilingual checkpoint is the only correct choice.
-2. Always preload. Without it the router rebuilds the checkpoint on every
-   language switch (measured 7-10 s median). With preload, latency is ~33 ms.
-3. Always calibrated. Raw probabilities are over-confident; the temperatures
-   fitted by the `calibrate_laya` DAG must be applied before any thresholding.
+This client owns the third rule: the server returns raw probabilities and the
+temperatures fitted by `calibrate_laya` are applied here, before anything is
+compared against a threshold.
 """
 
 from __future__ import annotations
 
 from src.agent.decision.base import Decision, DecisionModel
 
-CHECKPOINT = "multilingual"  # never "english": see note 1
 DEFAULT_LANGUAGE = "es"
 
 
 class LayaDecisionModel(DecisionModel):
-    def __init__(self, adapter_path: str, temperatures: dict[str, float], device: str = "cuda"):
+    def __init__(self, base_url: str, temperatures: dict[str, float], timeout_s: float):
+        self._base_url = base_url
         self._temperatures = temperatures
-        self._adapter_path = adapter_path
-        self._device = device
-        self._router = None
-
-    def load(self) -> None:
-        """Preload the checkpoint. Call once at service start, never per request."""
-        raise NotImplementedError
+        self._timeout_s = timeout_s
 
     async def decide(
         self,

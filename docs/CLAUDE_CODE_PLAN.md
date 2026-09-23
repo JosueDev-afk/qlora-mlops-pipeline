@@ -33,7 +33,8 @@ and they pin down the interfaces everything else depends on.
 | 4b | `src/pipeline/synth/spoken_forms.py`: canonical value → spoken es-MX variants | The inverse of item 3. Generates the corpus with labels by construction; round-trip tests against the normalizers |
 | 5 | `infra/docker-compose.yml`: airflow, spark, hdfs/minio, kafka, postgres, mlflow, metabase | Unblocks everything else |
 | 6 | `src/agent/speech/elevenlabs.py` implementing the base interfaces | Keeps the provider behind the abstraction |
-| 6b | `src/agent/decision/laya_model.py` implementing `DecisionModel` | Preload, multilingual checkpoint, temperature application |
+| 6b | `src/agent/decision/laya_model.py`: HTTP client implementing `DecisionModel` | Applies the fitted temperatures; keeps the agent torch-free |
+| 6c | `src/serving/laya.py`: Laya server, multilingual checkpoint, `Router(preload=True)` | Same serving path as Qwen on vLLM, so H1's latency comparison is fair |
 | 7 | `src/agent/graphs/flow_validate_contact.py` + node stubs | Flow 1 end to end with the base model |
 | 8 | `src/agent/telemetry/producer.py` + simulated call producer | Feeds the Kafka path |
 | 9 | `dags/ingest_corpus.py` + `src/pipeline/ingest/` | First real data |

@@ -39,8 +39,10 @@ eval:      ## Evaluate against the frozen eval set
 	$(DAG) evaluate_model
 
 # ── agent ─────────────────────────────────────────────────────────
-serve:     ## Serve the model with vLLM
-	python -m src.agent.llm.server
+serve:     ## Serve Qwen + adapter with vLLM (OpenAI-compatible)
+	python -m src.serving.qwen
+serve-laya: ## Serve Laya-multilingual with the router preloaded
+	python -m src.serving.laya
 demo:      ## Web voice demo (Pipecat over WebRTC)
 	python -m src.agent.demo.server
 demo-text: ## Fallback text demo in Streamlit
@@ -56,4 +58,4 @@ lint:      ## Lint and type-check
 fmt:       ## Auto-format
 	ruff format src dags tests && ruff check --fix src dags tests
 
-.PHONY: help up down clean logs init ingest curate generate augment gold train train-laya calibrate eval serve demo demo-text test test-all lint fmt
+.PHONY: help up down clean logs init ingest curate generate augment gold train train-laya calibrate eval serve serve-laya demo demo-text test test-all lint fmt
