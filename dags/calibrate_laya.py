@@ -1,8 +1,9 @@
-"""Fit Laya's temperatures on the human calibration split and gate on ECE.
+"""Fit Laya's temperatures, derive the call_rejected threshold, gate on ECE.
 
-Separate from train_laya so temperatures can be re-fitted for an existing run
-(`make calibrate RUN_ID=...`) without retraining. Laya ships over-confident:
-without this step `rejection_threshold` has no meaning (H6).
+Separate from train_laya so calibration can be re-run for an existing run
+(`make calibrate RUN_ID=...`) without retraining. Laya ships over-confident, so
+a threshold on raw probabilities has no meaning; and a threshold typed into a
+config file is a magic number. Both come out of this DAG instead (H6).
 """
 
 from __future__ import annotations
@@ -28,12 +29,15 @@ DEFAULT_ARGS = {"owner": "ml", "retries": 1}
 def calibrate_laya():
     @task
     def calibrate(params: dict | None = None) -> str:
-        """Fit one temperature per (question type, option count).
+        """Fit temperatures, then pick the call_rejected threshold.
 
         Uses `calibration.split`, which is human-annotated: gold is mostly
         synthetic, and a calibration fitted there may not transfer to real
-        speech. Fails the DAG if ECE stays above `calibration.max_ece`, because
-        an uncalibrated model cannot gate `handle_rejection`.
+        speech. The threshold is the point on the calibrated PR curve that
+        reaches `calibration.target_recall`; the eval set then reports how it
+        holds on unseen data. Fails the DAG if ECE stays above
+        `calibration.max_ece`, because an uncalibrated model cannot gate
+        `handle_rejection`.
         """
         assert params is not None
         return fit_temperature.run(run_id=params["run_id"], params_path="params.yaml")

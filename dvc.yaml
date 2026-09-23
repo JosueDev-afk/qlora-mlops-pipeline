@@ -29,7 +29,10 @@ stages:
     outs: [models/laya]
 
   calibrate_laya:
-    cmd: python -m src.pipeline.calibrate.fit_temperature --model models/laya --out models/laya/temperatures.json
+    # Writes temperatures and the derived call_rejected threshold. Kept outside
+    # models/laya, which belongs to the train_laya stage.
+    cmd: python -m src.pipeline.calibrate.fit_temperature --model models/laya --out models/laya_calibration.json
     deps: [src/pipeline/calibrate, models/laya, data/calibration]
-    params: [calibration.method, calibration.max_ece, calibration.split]
+    params: [calibration.method, calibration.max_ece, calibration.split, calibration.target_recall]
+    outs: [models/laya_calibration.json]
     metrics: [evaluation/reports/calibration.json]

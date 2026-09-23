@@ -57,6 +57,9 @@ calibration:
   method: temperature_scaling
   per: [question_type, n_options]   # one temperature per question shape
   max_ece: 0.10                     # the DAG fails above this
+  # The call_rejected threshold is derived, never set: calibrate_laya picks it
+  # from the PR curve on the calibration split to reach this recall (H6).
+  target_recall: 0.95
   split: data/calibration           # human-annotated; never gold (mostly synthetic), never the eval set
 
 # Latency is only comparable on fixed hardware.
@@ -73,4 +76,4 @@ audio:
   framework: pipecat
   interruption_threshold: 0.4       # P(real) to stop TTS; must stay < 0.5 (when in doubt,
                                     # interrupt). Replace with the PR-curve value
-  rejection_threshold: 0.5          # tuned for recall >= 0.95 (H6)
+  early_rejection_threshold: 0.5    # on ASR partials only; demo, never evaluated

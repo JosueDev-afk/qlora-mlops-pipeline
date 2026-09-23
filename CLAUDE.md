@@ -99,7 +99,12 @@ Three rules, all from the model card, all easy to get wrong:
   `Router(preload=True)` at start-up, never per request.
 - **Never threshold on raw probabilities.** Laya ships over-confident. Apply the
   temperatures fitted by the `calibrate_laya` DAG before any comparison against
-  a threshold. `rejection_threshold` is meaningless on uncalibrated output.
+  a threshold.
+- **Never hand-set the `call_rejected` threshold.** `calibrate_laya` derives it
+  from the calibrated PR curve on the calibration split for
+  `calibration.target_recall`, and stores it with the temperatures. Only the
+  demo's `audio.early_rejection_threshold` (ASR partials, never evaluated) is
+  set by hand.
 
 ### 6. The eval set is frozen
 
