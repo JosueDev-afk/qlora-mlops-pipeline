@@ -192,7 +192,8 @@ ElevenLabs SDK directly from a node or graph.
 | Laya and Qwen are both **served over HTTP** from `src/serving/` | Keeps `src/agent/` torch-free, and H1 compares latencies over the same serving path |
 | Qwen3 runs with **thinking disabled** | Reasoning tokens would spend the 500 ms budget before the JSON |
 | **Everything runs locally** (MacBook Air M4, 16 GB) except GPU work | No Cloud billing, no Dataproc: Spark runs in local mode. Colab (Google AI Pro CCU) runs QLoRA, Laya fine-tuning and latency measurements, because the Mac has no CUDA for vLLM or bitsandbytes |
-| Docker services run **by profile**, never the whole stack at once | 16 GB does not fit Airflow, Spark, HDFS, MinIO, Kafka, Postgres, MLflow and Metabase next to a Spark job |
+| Docker services run **by profile**, never the whole stack at once | 16 GB does not fit Airflow, HDFS, Kafka, Postgres, MLflow and Metabase next to a Spark job. Only Postgres runs by default |
+| **No object store**: the lake is `data/{bronze,silver,gold}` on disk | MinIO stopped publishing images (Oct 2025) and Spark runs in local mode; DVC already versions `data/`. HDFS is an optional, amd64-only profile for the rubric |
 | The DVC remote is a **local directory**; the human-made artifacts are copied elsewhere | Eval set, calibration split and carrier-phrase bank cannot be regenerated, and a remote on the same disk is not a backup |
 | The H1/H1b frontier arm uses the **Gemini API free tier** | The only non-local component. Only the frozen eval set (no personal data) is sent, and the paper discloses it |
 

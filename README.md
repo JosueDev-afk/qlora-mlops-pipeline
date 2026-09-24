@@ -65,20 +65,30 @@ Everything runs locally (developed on a MacBook Air M4, 16 GB) except GPU work:
 QLoRA, Laya fine-tuning and latency measurements run on Colab, because vLLM and
 bitsandbytes need CUDA. Local Spark needs a JDK 17 (`brew install openjdk@17`).
 
+The stack needs a Docker runtime (Docker Desktop, OrbStack or Colima) with about
+10 GB of memory. Services are grouped in compose profiles and started on demand;
+only Postgres runs by default.
+
 ```bash
-cp .env.example .env          # fill in the API keys
-make up                       # start services by compose profile; 16 GB won't fit them all
-make init                     # DDL, MinIO buckets, Kafka topics
-make test                     # unit tests, no infra required
+cp .env.example .env                    # fill in the API keys
+make up                                 # postgres + pipeline (airflow, mlflow)
+make up PROFILES="pipeline streaming"   # add kafka
+make init                               # OLTP schema, lake dirs, kafka topics
+make test                               # unit tests, no infra required
+make down                               # stops every profile
 ```
 
-| Service | URL |
-|---|---|
-| Airflow | http://localhost:8080 |
-| MLflow | http://localhost:5000 |
-| MinIO console | http://localhost:9001 |
-| Metabase | http://localhost:3000 |
-| Spark master | http://localhost:8081 |
+| Profile | Service | URL |
+|---|---|---|
+| core | Postgres | localhost:5432 |
+| `pipeline` | Airflow (Spark runs inside, `local[*]`) | http://localhost:8080 |
+| `pipeline` | MLflow | http://localhost:5000 |
+| `streaming` | Kafka | localhost:29092 |
+| `bi` | Metabase | http://localhost:3000 |
+| `hdfs` | HDFS namenode (amd64, emulated; demo only) | http://localhost:9870 |
+
+There is no object store: MinIO stopped publishing images in October 2025. The
+lake is `data/{bronze,silver,gold}` on disk, versioned by DVC.
 
 ## Pipeline
 

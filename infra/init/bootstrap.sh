@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
-# Idempotent bootstrap: schema, MinIO buckets, Kafka topics.
+# Idempotent bootstrap: OLTP schema, lake directories, Kafka topics.
 set -euo pipefail
-COMPOSE="docker compose -f infra/docker-compose.yml"
+cd "$(dirname "$0")/../.."
+if [ -f .env ]; then set -a; . ./.env; set +a; fi
+COMPOSE="docker compose --env-file .env -f infra/docker-compose.yml"
 
 echo "→ postgres schema"
 $COMPOSE exec -T postgres psql -U "${POSTGRES_USER:-agent}" -d "${POSTGRES_DB:-voice_agent}" \
   -v ON_ERROR_STOP=0 < infra/init/schema.sql
 
-echo "→ minio buckets"
-$COMPOSE exec -T minio sh -c '
-  mc alias set local http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
-  for b in bronze silver gold mlflow dvc; do mc mb --ignore-existing "local/$b"; done'
+echo "→ lake directories"
+mkdir -p data/bronze data/silver data/gold
 
-echo "→ kafka topics"
-for t in calls.events calls.transcripts model.inferences; do
-  $COMPOSE exec -T kafka kafka-topics --bootstrap-server localhost:9092 \
-    --create --if-not-exists --topic "$t" --partitions 3 --replication-factor 1
-done
+# Kafka belongs to the `streaming` profile; skip it when that profile is down.
+if $COMPOSE ps --status running --services | grep -qx kafka; then
+  echo "→ kafka topics"
+  for t in calls.events calls.transcripts model.inferences; do
+    $COMPOSE exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 \
+      --create --if-not-exists --topic "$t" --partitions 3 --replication-factor 1
+  done
+else
+  echo "→ kafka not running (start it with: make up PROFILES=streaming); topics skipped"
+fi
 
 echo "✓ bootstrap complete"

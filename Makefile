@@ -1,21 +1,23 @@
 .DEFAULT_GOAL := help
-COMPOSE := docker compose -f infra/docker-compose.yml
-DAG     := $(COMPOSE) exec -T airflow-scheduler airflow dags trigger
+COMPOSE  := docker compose --env-file .env -f infra/docker-compose.yml
+ALL      := --profile pipeline --profile streaming --profile bi --profile hdfs
+PROFILES ?= pipeline
+DAG      := $(COMPOSE) exec -T airflow-scheduler airflow dags trigger
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	| awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n",$$1,$$2}'
 
 # ── infrastructure ────────────────────────────────────────────────
-up: ## Start the full stack
-	$(COMPOSE) up -d
-down: ## Stop the stack
-	$(COMPOSE) down
-clean: ## Stop the stack and delete volumes (destructive)
-	$(COMPOSE) down -v
-logs: ## Tail logs
-	$(COMPOSE) logs -f --tail=100
-init: ## Create DDL, MinIO buckets and Kafka topics
+up: ## Start postgres + PROFILES (default: pipeline). make up PROFILES="pipeline streaming"
+	$(COMPOSE) $(foreach p,$(PROFILES),--profile $(p)) up -d --build
+down: ## Stop every service, whatever profile started it
+	$(COMPOSE) $(ALL) down
+clean: ## Stop everything and delete volumes (destructive)
+	$(COMPOSE) $(ALL) down -v
+logs: ## Tail logs of running services
+	$(COMPOSE) $(ALL) logs -f --tail=100
+init: ## Create the OLTP schema, lake directories and (if running) Kafka topics
 	bash infra/init/bootstrap.sh
 
 # ── pipeline ──────────────────────────────────────────────────────
