@@ -42,7 +42,7 @@ agent = [
     "httpx>=0.27",
     "asyncpg>=0.29",
     "confluent-kafka>=2.4",
-    "elevenlabs>=1.3",
+    "websockets>=13.0",         # Scribe v2 Realtime STT; ElevenLabs spoken directly, no SDK
     "openai>=1.35",             # OpenAI-compatible client for vLLM
     "pipecat-ai>=0.0.50",       # real-time audio layer over WebRTC (demo)
 ]
@@ -61,6 +61,8 @@ dev = [
     "nbstripout>=0.7",
     "jupyterlab>=4.2",          # notebooks/ exploration; rule 7: never imported
     "ipykernel>=6.29",          # lets notebooks use the project's virtualenv
+    "httpx>=0.27",              # unit-test the agent speech adapters without the agent group
+    "websockets>=13.0",
 ]
 
 [tool.ruff]
