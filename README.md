@@ -61,9 +61,13 @@ No exceptions. Enforced in code review.
 
 ## Quick start
 
+Everything runs locally (developed on a MacBook Air M4, 16 GB) except GPU work:
+QLoRA, Laya fine-tuning and latency measurements run on Colab, because vLLM and
+bitsandbytes need CUDA. Local Spark needs a JDK 17 (`brew install openjdk@17`).
+
 ```bash
 cp .env.example .env          # fill in the API keys
-make up                       # airflow, spark, hdfs, kafka, postgres, mlflow, metabase
+make up                       # start services by compose profile; 16 GB won't fit them all
 make init                     # DDL, MinIO buckets, Kafka topics
 make test                     # unit tests, no infra required
 ```

@@ -3,7 +3,7 @@
 Notebooks are for **exploration only**. Nothing here is ever imported by `src/` or `dags/`.
 When code proves useful, move it into `src/` with a test.
 
-`nbstripout` runs in pre-commit: outputs are never committed, so diffs stay readable.
+Run them with `make notebook` (Jupyter Lab). `nbstripout` runs in pre-commit: outputs are never committed, so diffs stay readable.
 
 | Notebook | Purpose | Ola |
 |---|---|---|

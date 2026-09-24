@@ -59,6 +59,8 @@ dev = [
     "mypy>=1.10",
     "pre-commit>=3.7",
     "nbstripout>=0.7",
+    "jupyterlab>=4.2",          # notebooks/ exploration; rule 7: never imported
+    "ipykernel>=6.29",          # lets notebooks use the project's virtualenv
 ]
 
 [tool.ruff]

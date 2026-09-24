@@ -114,8 +114,9 @@ eval set needs to change, stop and ask.
 
 ### 7. Notebooks are never imported
 
-`notebooks/` is exploration only. Nothing in `src/` or `dags/` may import from
-it. When notebook code proves useful, move it to `src/` with a test.
+`notebooks/` is exploration only, in Jupyter (`make notebook`). Nothing in
+`src/` or `dags/` may import from it. When notebook code proves useful, move it
+to `src/` with a test.
 
 ### 8. Prompts are versioned artifacts
 
@@ -183,13 +184,17 @@ ElevenLabs SDK directly from a node or graph.
 | Transport is **WebRTC**, not telephony | Removes an external dependency that teaches nothing. Migrating is a Pipecat transport swap |
 | Synthetic data is generated **by code** from its label | Labels are correct by construction and cost nothing per example, so there is no LLM-as-judge filter |
 | **No translation or localization** of English corpora | Their domains (hotels, restaurants) do not teach alphanumeric capture, they add translationese, and they were most of the GPU/API cost |
-| The only LLM-written corpus text is the **carrier-phrase bank** (1,000–2,000, human-reviewed) | Gemini on the paid tier (Cloud credits) or Qwen3 locally. Never the free tier: Google uses that data |
+| The only LLM-written corpus text is the **carrier-phrase bank** (1,000–2,000, human-reviewed) | Written with **Qwen3-8B**: open, no Cloud billing, larger than the arms under test. Never a free-tier API for corpus text: providers may train on what they receive |
 | Laya temperatures are fitted on a **human calibration split**, never on gold | Gold is mostly synthetic; a calibration fitted there may not transfer to real speech (H6) |
 | The eval set includes **Task D** and **≥ 100 `call_rejected` turns** before freezing | Nothing can be added after week 3; with 40 rejections a 0.95 recall has a CI of ~0.84–0.99 |
 | Qwen3-4B is also trained on **Task B**, only as the H1 arm | Without it H1 has no generative arm. At runtime Task B stays on Laya |
 | Latency is measured **to complete JSON** on a fixed **L4** | LangGraph needs the whole output to act; p95s are only comparable on the same hardware |
 | Laya and Qwen are both **served over HTTP** from `src/serving/` | Keeps `src/agent/` torch-free, and H1 compares latencies over the same serving path |
 | Qwen3 runs with **thinking disabled** | Reasoning tokens would spend the 500 ms budget before the JSON |
+| **Everything runs locally** (MacBook Air M4, 16 GB) except GPU work | No Cloud billing, no Dataproc: Spark runs in local mode. Colab (Google AI Pro CCU) runs QLoRA, Laya fine-tuning and latency measurements, because the Mac has no CUDA for vLLM or bitsandbytes |
+| Docker services run **by profile**, never the whole stack at once | 16 GB does not fit Airflow, Spark, HDFS, MinIO, Kafka, Postgres, MLflow and Metabase next to a Spark job |
+| The DVC remote is a **local directory**; the human-made artifacts are copied elsewhere | Eval set, calibration split and carrier-phrase bank cannot be regenerated, and a remote on the same disk is not a backup |
+| The H1/H1b frontier arm uses the **Gemini API free tier** | The only non-local component. Only the frozen eval set (no personal data) is sent, and the paper discloses it |
 
 **Rejection disambiguation:** `cannot_attend` refers to the *appointment*;
 `call_rejected` refers to the *call*. When ambiguous between the two, choose
@@ -217,6 +222,7 @@ make up      make init     make test     make lint
 make ingest  make curate   make generate make augment
 make gold    make train    make eval
 make train-laya   make calibrate RUN_ID=...   make demo   make demo-text
+make notebook
 ```
 
 ## Definition of done

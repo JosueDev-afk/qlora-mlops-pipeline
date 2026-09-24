@@ -48,6 +48,10 @@ demo:      ## Web voice demo (Pipecat over WebRTC)
 demo-text: ## Fallback text demo in Streamlit
 	streamlit run src/agent/demo/streamlit_app.py
 
+# ── exploration ───────────────────────────────────────────────────
+notebook:  ## Jupyter Lab on notebooks/ (exploration only, never imported)
+	jupyter lab notebooks/
+
 # ── quality ───────────────────────────────────────────────────────
 test:      ## Unit tests (no infrastructure required)
 	pytest tests/unit -q
@@ -58,4 +62,4 @@ lint:      ## Lint and type-check
 fmt:       ## Auto-format
 	ruff format src dags tests && ruff check --fix src dags tests
 
-.PHONY: help up down clean logs init ingest curate generate augment gold train train-laya calibrate eval serve serve-laya demo demo-text test test-all lint fmt
+.PHONY: help up down clean logs init ingest curate generate augment gold train train-laya calibrate eval serve serve-laya demo demo-text notebook test test-all lint fmt

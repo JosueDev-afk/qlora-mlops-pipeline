@@ -31,7 +31,7 @@ and they pin down the interfaces everything else depends on.
 | 3 | `src/pipeline/common/normalizers.py`: spelled-email → address, spoken digits → E.164, name variants | Pure functions, high test value, **the actual hard part of the project** |
 | 4 | `tests/unit/test_normalizers.py` with es-MX cases | Write the cases yourself; you are the native speaker |
 | 4b | `src/pipeline/synth/spoken_forms.py`: canonical value → spoken es-MX variants | The inverse of item 3. Generates the corpus with labels by construction; round-trip tests against the normalizers |
-| 5 | `infra/docker-compose.yml`: airflow, spark, hdfs/minio, kafka, postgres, mlflow, metabase | Unblocks everything else |
+| 5 | `infra/docker-compose.yml`: airflow, spark, hdfs/minio, kafka, postgres, mlflow, metabase, with a **profile per stage** | Unblocks everything else. On a 16 GB Mac the whole stack never runs at once |
 | 6 | `src/agent/speech/elevenlabs.py` implementing the base interfaces | Keeps the provider behind the abstraction |
 | 6b | `src/agent/decision/laya_model.py`: HTTP client implementing `DecisionModel` | Applies the fitted temperatures; keeps the agent torch-free |
 | 6c | `src/serving/laya.py`: Laya server, multilingual checkpoint, `Router(preload=True)` | Same serving path as Qwen on vLLM, so H1's latency comparison is fair |
@@ -48,7 +48,6 @@ Claude Code is good at code, not at these:
 
 - Building and freezing the eval set — needs a native speaker's judgement
 - Reviewing the carrier-phrase bank for naturalness — the whole point is that a human decides
-- Deciding whether the Gemini API terms allow generating the bank (`docs/DATA_PROVENANCE.md`)
 - Annotating the human calibration split for Laya, separate from the eval set
 - Choosing the personas and variation axes for synthetic generation
 - Reading and interpreting license terms
