@@ -106,6 +106,7 @@ def test_spelled_email_transcripts_normalize(transcript: str, expected: str) -> 
         "punto juan arroba gmail punto com",  # leading dot
         "juan punto punto perez arroba gmail punto com",  # consecutive dots
         "jota u a eñe o arroba gmail punto com",  # ñ is not valid in an address
+        "juan punto de punto perez arroba gmail punto com",  # letter d or the word "de"?
         "",
     ],
 )

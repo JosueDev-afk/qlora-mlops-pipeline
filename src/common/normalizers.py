@@ -233,6 +233,15 @@ def normalize_email(transcript: str) -> str | None:
                 items[k] = ["letter", AMBIGUOUS_LETTERS[text]]
                 changed = True
 
+    for k, (kind, text) in enumerate(items):
+        # "punto de punto" is the letter d or the word "de" with nothing to tell
+        # them apart. Vowels are safe (the letter and the word are the same text);
+        # de/te/ese/ye are not, unless a neighbouring word shows they are words.
+        neighbours = items[max(k - 1, 0) : k] + items[k + 1 : k + 2]
+        is_word_like = AMBIGUOUS_LETTERS.get(text) != text
+        if kind == "ambig" and is_word_like and not any(n[0] == "word" for n in neighbours):
+            return None
+
     address = "".join(text for _, text in items)
     return address if EMAIL_RE.match(address) else None
 
