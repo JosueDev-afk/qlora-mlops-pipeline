@@ -19,9 +19,11 @@ jobs:
 
   evaluate:
     # Runs the frozen eval set on every PR and comments the metrics.
-    # This is what makes the repo an MLOps project rather than tidy scripts.
+    # Disabled: the DVC remote is a local directory, which CI cannot reach.
+    # Re-enable once the eval set lives somewhere CI can pull from; until then
+    # evaluation runs locally with `make eval`.
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,9 +31,6 @@ jobs:
       - run: pip install -e ".[dev,pipeline]"
       - name: Pull frozen eval set
         run: dvc pull evaluation/eval_set
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.DVC_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.DVC_SECRET_KEY }}
       - name: Evaluate registered model
         run: python -m src.pipeline.evaluate.run --report evaluation/reports/pr.md
       - uses: marocchino/sticky-pull-request-comment@v2

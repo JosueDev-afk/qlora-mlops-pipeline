@@ -108,6 +108,26 @@ That is what makes the central hypothesis a fair comparison.
   architecture can fall back to a single model if the eval set does not support
   the two-model split.
 
+## Data versioning (DVC, local remote)
+
+The DVC remote is a plain directory next to the repository, outside Git:
+`../dvc-storage/qlora-mlops-pipeline`. No cloud account, no credentials, no cost.
+`dvc push` copies data there and `dvc pull` restores it. To keep it on an
+external disk instead:
+
+```bash
+dvc remote modify local url /Volumes/<disk>/dvc-storage/qlora-mlops-pipeline
+```
+
+A local remote on the same disk as the cache is **not a backup**. Almost
+everything can be rebuilt by the pipeline (public corpora are re-downloadable,
+synthetic data is seeded), but three artifacts are human-made and cannot:
+the frozen eval set, the calibration split and the reviewed carrier-phrase bank.
+Copy those to a second location whenever they change.
+
+CI cannot reach a local remote, so the `evaluate` job is disabled and
+evaluation runs locally with `make eval`.
+
 ## Reproducing any result
 
 ```bash

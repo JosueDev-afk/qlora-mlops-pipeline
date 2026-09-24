@@ -19,7 +19,7 @@ pipeline = [
     "datasets>=2.19",
     "huggingface-hub>=0.23",
     "great-expectations>=0.18",
-    "dvc[s3]>=3.51",
+    "dvc>=3.51",                # local remote next to the repo (see README)
     "mlflow>=2.13",
     "apache-airflow==2.9.2",
     "datasketch>=1.6",          # MinHash / LSH
