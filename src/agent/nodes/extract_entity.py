@@ -30,17 +30,22 @@ async def extract_entity(state: dict[str, Any], llm: LLMClient) -> dict[str, Any
         schema_path=PROMPT.schema,
     )
     # An unparseable output is treated as ambiguous and retried, never crashes the call.
-    result = parse_or_ambiguous(result)
+    result = parse_or_ambiguous(result, PROMPT.id, field=field_name)
 
     low_confidence = result["confidence"] < CONFIDENCE_THRESHOLD or result["needs_reprompt"]
     attempts = state["reprompts"].get(field_name, 0)
 
+    # After MAX_REPROMPTS the field is marked unvalidated and the flow moves on.
+    # It does NOT escalate to a human and does NOT end the call.
+    if not low_confidence:
+        next_step = "confirm"
+    elif attempts < MAX_REPROMPTS:
+        next_step = "reprompt"
+    else:
+        next_step = "mark_unvalidated"
+
     return {
         **state,
         "extracted": {**state.get("extracted", {}), field_name: result},
-        # After MAX_REPROMPTS the field is marked unvalidated and the flow moves on.
-        # It does NOT escalate to a human and does NOT end the call.
-        "next": "reprompt" if low_confidence and attempts < MAX_REPROMPTS
-        else "mark_unvalidated" if low_confidence
-        else "confirm",
+        "next": next_step,
     }
