@@ -145,7 +145,7 @@ src/agent/          runtime  (latency-sensitive, no Spark, no torch)
   ├─ telemetry/     call events to Kafka; feeds the analytics path
   └─ demo/          layer 1 entrypoint (Pipecat/WebRTC). Demo only, recutable
 src/serving/        model servers: Qwen via vLLM, Laya preloaded  (GPU, torch)
-src/common/         shared by all zones (prompts, config, logging); base deps only
+src/common/         shared by all zones: prompts, config, logging, normalizers
 prompts/            versioned prompt and typed-question artifacts
 schemas/            JSON Schema per model output
 evaluation/         frozen eval set + reports

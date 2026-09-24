@@ -28,8 +28,8 @@ and they pin down the interfaces everything else depends on.
 |---|---|---|
 | 1 | `src/common/`: config loader, structured logging, prompt loader with hash | Everything imports this; lives outside both zones so the agent can use it |
 | 2 | `src/agent/llm/structured.py`: schema validation, `parse_or_ambiguous` | Rule 4 lives here |
-| 3 | `src/pipeline/common/normalizers.py`: spelled-email → address, spoken digits → E.164, name variants | Pure functions, high test value, **the actual hard part of the project** |
-| 4 | `tests/unit/test_normalizers.py` with es-MX cases | Write the cases yourself; you are the native speaker |
+| 3 | `src/common/normalizers.py`: spelled-email → address, spoken digits → E.164, name variants | Pure functions, high test value, **the actual hard part of the project** |
+| 4 | `tests/unit/test_normalizers.py` with es-MX cases | Seed cases exist; extend them yourself with real Scribe transcripts. You are the native speaker |
 | 4b | `src/pipeline/synth/spoken_forms.py`: canonical value → spoken es-MX variants | The inverse of item 3. Generates the corpus with labels by construction; round-trip tests against the normalizers |
 | 5 | `infra/docker-compose.yml`: airflow, spark, hdfs/minio, kafka, postgres, mlflow, metabase, with a **profile per stage** | Unblocks everything else. On a 16 GB Mac the whole stack never runs at once |
 | 6 | `src/agent/speech/elevenlabs.py` implementing the base interfaces | Keeps the provider behind the abstraction |
