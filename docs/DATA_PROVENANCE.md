@@ -7,15 +7,27 @@ Audit each source **before** investing effort in it (Ola 1, week 2).
 
 | Source | Type | License | Verified | Commercial use | Redistribution of derivatives |
 |---|---|---|---|---|---|
-| MASSIVE | Intents/slots, multilingual (Spanish used as is) | | ☐ | | |
-| CallCenterEN / AIxBlock | Call center transcripts (curated, not translated) | | ☐ | | |
+| MASSIVE | Intents/slots, multilingual (es-ES, used as is) | CC BY 4.0 (card) | ☐ | | |
+| CallCenterEN / AIxBlock | Call center transcripts (curated, not translated) | CC BY-NC 4.0 (card: "commercial use, resale, or redistribution is prohibited") | ☐ | | |
 | Spanish general-instruction dataset (to be chosen) | Replay data (H5b) | | ☐ | | |
-| CIEMPIESS Light | es-MX audio (ASR error profile) | | ☐ | | |
+| CIEMPIESS Light | es-MX audio (ASR error profile) | CC BY-SA 4.0 (card) | ☐ | | |
 | Qwen3-4B | Base model | Apache-2.0 | ☑ | Yes | Yes |
 | Qwen3-1.7B | Base model (H5a arm) | Apache-2.0 | ☐ | | |
 | Laya-multilingual | Decision model | Apache-2.0 | ☐ | | |
 | Qwen3-8B | Carrier-phrase generator | Apache-2.0 | ☐ | | |
 | Gemini API (free tier) | H1/H1b frontier arm and eval judge only | Gemini API Additional Terms | ☐ | | n/a |
+
+The License column is what each source's card declares, read on 2026-09-25;
+it is not a legal reading. Ticking Verified is the maintainer's call, and it is
+what `ingest_corpus` checks: `ingest.sources.<name>.verified` in params.yaml
+must be true before a source is downloaded.
+
+Open questions before ticking:
+- **CallCenterEN is non-commercial**, the reason Qwen2.5-3B was rejected. It is
+  meant to shape the ASR noise (confidence and disfluency statistics), not to
+  enter the corpus as text; decide whether that use is acceptable, or drop it.
+- **CIEMPIESS Light is share-alike.** Only its audio's error profile (via
+  Scribe v2) is used; decide whether anything derived from it is redistributed.
 
 **Rejected (license):**
 - Qwen2.5-3B-Instruct — Qwen Research License, non-commercial.

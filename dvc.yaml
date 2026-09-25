@@ -1,4 +1,16 @@
 stages:
+  ingest:
+    # Bronze is rebuilt byte for byte from the pins in params.yaml, so DVC
+    # tracks its hashes without caching a copy (3x disk on a 16 GB laptop).
+    # persist: bronze is append-only and must survive a repro.
+    cmd: python -m src.pipeline.ingest.run --out data/bronze
+    deps: [src/pipeline/ingest]
+    params: [ingest.sources]
+    outs:
+      - data/bronze:
+          cache: false
+          persist: true
+
   curate:
     cmd: python -m src.pipeline.curate.run --in data/bronze --out data/silver
     deps: [src/pipeline/curate, data/bronze]

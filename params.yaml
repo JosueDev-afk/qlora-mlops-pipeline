@@ -5,6 +5,35 @@ spark:
   master: local[*]
   driver_memory: 6g
 
+# Public corpora downloaded raw into data/bronze/<source>/ingest_date=<date>/.
+# Every source is pinned (a Hub commit or a sha256), so bronze can always be
+# rebuilt byte for byte. `verified` is the maintainer's license check from
+# docs/DATA_PROVENANCE.md: ingest refuses a source until it is true.
+ingest:
+  sources:
+    massive:
+      kind: url                 # the Hub repo only holds a loading script
+      url: https://amazon-massive-nlu-dataset.s3.amazonaws.com/amazon-massive-dataset-1.1.tar.gz
+      sha256: 4cba5faa11c71437928e17cb1b9b3d8b8e727e7ea363a3a9a8045e19c0491577
+      license: cc-by-4.0
+      purpose: intents in Spanish (es-ES locale, used as is)
+      verified: false
+    callcenter_en:
+      kind: hf_dataset
+      repo_id: AIxBlock/92k-real-world-call-center-scripts-english
+      revision: 9d40ca13f3e173ad815c89bb8fff144be3ae3146
+      license: cc-by-nc-4.0     # non-commercial; the card forbids commercial use
+      purpose: ASR confidence and disfluency profile for augmentation
+      verified: false
+    ciempiess_light:
+      kind: hf_dataset
+      repo_id: ciempiess/ciempiess_light
+      revision: 3d6afb2b3b8dd00ad8f5b1288fe4c18f5882faaa
+      license: cc-by-sa-4.0     # share-alike
+      purpose: es-MX audio for the Scribe v2 error profile
+      verified: false
+    # spanish_instructions: replay data (H5b), still to be chosen and audited.
+
 synth:
   n_dialogues: 30000
   seed: 42
