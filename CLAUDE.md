@@ -197,6 +197,7 @@ ElevenLabs SDK directly from a node or graph.
 | Qwen3-4B is also trained on **Task B**, only as the H1 arm | Without it H1 has no generative arm. At runtime Task B stays on Laya |
 | Latency is measured **to complete JSON** on a fixed **L4** | LangGraph needs the whole output to act; p95s are only comparable on the same hardware |
 | Laya and Qwen are both **served over HTTP** from `src/serving/` | Keeps `src/agent/` torch-free, and H1 compares latencies over the same serving path |
+| Telemetry **redacts personal values by default** | Transcripts and extracted values carry names, phones and emails, and Kafka feeds a permanent Bronze layer. Only the simulator, whose data is synthetic, sends text |
 | Laya temperatures are applied **in the server**, on the logits | Laya rounds the probabilities it returns to 4 decimals; re-tempering them in the client is lossy and duplicates Laya's bucket logic |
 | Qwen3 runs with **thinking disabled** | Reasoning tokens would spend the 500 ms budget before the JSON |
 | **Everything runs locally** (MacBook Air M4, 16 GB) except GPU work | No Cloud billing, no Dataproc: Spark runs in local mode. Colab (Google AI Pro CCU) runs QLoRA, Laya fine-tuning and latency measurements, because the Mac has no CUDA for vLLM or bitsandbytes |

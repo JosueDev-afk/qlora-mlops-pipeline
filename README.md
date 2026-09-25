@@ -74,6 +74,7 @@ cp .env.example .env                    # fill in the API keys
 make up                                 # postgres + pipeline (airflow, mlflow)
 make up PROFILES="pipeline streaming"   # add kafka
 make init                               # OLTP schema, lake dirs, kafka topics
+make simulate ARGS="--calls 50"         # synthetic call telemetry into kafka
 make test                               # unit tests, no infra required
 make down                               # stops every profile
 ```

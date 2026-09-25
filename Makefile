@@ -47,6 +47,8 @@ serve-laya: ## Serve Laya-multilingual, preloaded and calibrated (models/laya*)
 	python -m src.serving.laya
 demo:      ## Web voice demo (Pipecat over WebRTC)
 	python -m src.agent.demo.server
+simulate:  ## Replay simulated calls to Kafka: make simulate ARGS="--calls 50 --speed 10"
+	python -m src.agent.telemetry.simulate $(ARGS)
 demo-text: ## Fallback text demo in Streamlit
 	streamlit run src/agent/demo/streamlit_app.py
 
@@ -64,4 +66,4 @@ lint:      ## Lint and type-check
 fmt:       ## Auto-format
 	ruff format src dags tests && ruff check --fix src dags tests
 
-.PHONY: help up down clean logs init ingest curate generate augment gold train train-laya calibrate eval serve serve-laya demo demo-text notebook test test-all lint fmt
+.PHONY: help up down clean logs init ingest curate generate augment gold train train-laya calibrate eval serve serve-laya demo demo-text simulate notebook test test-all lint fmt

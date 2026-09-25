@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CallEvent",
+  "description": "One telemetry event of a call, as produced to Kafka. Envelope is strict; payload is checked per type. Consumed by Spark Structured Streaming into Bronze.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_id", "call_id", "seq", "ts", "type", "payload"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "event_id": { "type": "string", "format": "uuid" },
+    "call_id": { "type": "string", "minLength": 1 },
+    "seq": { "type": "integer", "minimum": 0, "description": "Per call, strictly increasing: orders events that share a millisecond" },
+    "ts": { "type": "string", "format": "date-time" },
+    "type": {
+      "enum": ["call_started", "turn_started", "asr_partial", "asr_final", "decision",
+               "llm_response", "tool_invoked", "tts_done", "latency", "barge_in", "call_ended"]
+    },
+    "payload": { "type": "object" }
+  },
+  "allOf": [
+    { "if": { "properties": { "type": { "const": "call_started" } } },
+      "then": { "properties": { "payload": {
+        "required": ["flow", "contact_id", "model_version", "prompt_hash", "synthetic"],
+        "properties": {
+          "flow": { "enum": ["validate_contact", "confirm_appointment"] },
+          "synthetic": { "type": "boolean" } } } } } },
+    { "if": { "properties": { "type": { "const": "turn_started" } } },
+      "then": { "properties": { "payload": {
+        "required": ["turn_idx", "speaker"],
+        "properties": { "turn_idx": { "type": "integer", "minimum": 0 },
+                        "speaker": { "enum": ["agent", "person"] } } } } } },
+    { "if": { "properties": { "type": { "enum": ["asr_partial", "asr_final"] } } },
+      "then": { "properties": { "payload": {
+        "required": ["turn_idx", "text"],
+        "properties": { "text": { "type": "string" },
+                        "asr_confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 } } } } } },
+    { "if": { "properties": { "type": { "const": "decision" } } },
+      "then": { "properties": { "payload": {
+        "required": ["turn_idx", "task", "output", "latency_ms"],
+        "properties": { "task": { "enum": ["classify_intent", "is_real_interruption"] },
+                        "latency_ms": { "type": "number", "minimum": 0 } } } } } },
+    { "if": { "properties": { "type": { "const": "llm_response" } } },
+      "then": { "properties": { "payload": {
+        "required": ["turn_idx", "task", "prompt_version", "prompt_sha256", "json_valid", "latency_ms"],
+        "properties": { "task": { "enum": ["extract_entity", "parse_datetime", "classify_intent"] },
+                        "json_valid": { "type": "boolean" },
+                        "latency_ms": { "type": "number", "minimum": 0 } } } } } },
+    { "if": { "properties": { "type": { "const": "tool_invoked" } } },
+      "then": { "properties": { "payload": {
+        "required": ["turn_idx", "tool"],
+        "properties": { "tool": { "enum": ["update_contact", "mark_unvalidated", "mark_confirmed", "reschedule"] } } } } } },
+    { "if": { "properties": { "type": { "const": "tts_done" } } },
+      "then": { "properties": { "payload": {
+        "required": ["turn_idx", "text", "duration_ms"],
+        "properties": { "duration_ms": { "type": "number", "minimum": 0 } } } } } },
+    { "if": { "properties": { "type": { "const": "latency" } } },
+      "then": { "properties": { "payload": {
+        "required": ["turn_idx", "end_to_end_ms", "endpointing_ms"],
+        "properties": { "end_to_end_ms": { "type": "number", "minimum": 0 },
+                        "endpointing_ms": { "type": "number", "minimum": 0 } } } } } },
+    { "if": { "properties": { "type": { "const": "barge_in" } } },
+      "then": { "properties": { "payload": {
+        "required": ["turn_idx", "interrupted", "p_real"],
+        "properties": { "interrupted": { "type": "boolean" },
+                        "p_real": { "type": "number", "minimum": 0, "maximum": 1 } } } } } },
+    { "if": { "properties": { "type": { "const": "call_ended" } } },
+      "then": { "properties": { "payload": {
+        "required": ["outcome", "turns"],
+        "properties": { "outcome": { "enum": ["completed", "rejected", "partial", "failed"] },
+                        "turns": { "type": "integer", "minimum": 0 } } } } } }
+  ]
+}
