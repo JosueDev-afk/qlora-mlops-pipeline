@@ -1,0 +1,27 @@
+id: classify_intent_laya
+version: 1
+schema: schemas/classify_intent.schema.json
+model: laya-multilingual
+language: es-MX
+notes: >
+  Task B on Laya, the runtime path. prompts/classify_intent/ holds the Qwen
+  prompt, used only as the generative arm of H1. Same labels and the same
+  cannot_attend / call_rejected rule, so both arms answer the same question.
+  The state sent with it uses the Qwen template's labels: flujo, contexto,
+  transcripción.
+questions:
+  intent:
+    type: choice
+    instructions: >
+      ¿Qué intención expresa la persona en este turno de una llamada telefónica
+      saliente? cannot_attend se refiere a la cita; call_rejected se refiere a la
+      llamada. Ante la duda entre ambas, es call_rejected: es preferible cortar de
+      más que insistirle a alguien que va manejando.
+    criteria:
+      confirmed: acepta o confirma («sí», «ahí estaré», «claro que sí», «correcto»)
+      cannot_attend: no podrá asistir a la cita («no voy a poder ir ese día»)
+      call_rejected: >
+        no puede atender la llamada ahora («ahorita no puedo», «voy manejando»,
+        «márcame después», «estoy en el trabajo»)
+      ambiguous: no se distingue con claridad
+      out_of_scope: algo ajeno al flujo («¿quién habla?», «¿de dónde sacaron mi número?»)

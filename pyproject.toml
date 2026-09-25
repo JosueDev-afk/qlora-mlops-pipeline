@@ -37,7 +37,7 @@ train = [
 ]
 # Zone 2 — runtime. Latency-sensitive: no Spark, no torch.
 agent = [
-    "langgraph>=0.1",
+    "langgraph>=1.2",
     "langchain-core>=0.2",
     "httpx>=0.27",
     "asyncpg>=0.29",
@@ -63,6 +63,7 @@ dev = [
     "ipykernel>=6.29",          # lets notebooks use the project's virtualenv
     "httpx>=0.27",              # unit-test the agent speech adapters without the agent group
     "websockets>=13.0",
+    "langgraph>=1.2",           # unit-test the flows against the real checkpointer
 ]
 
 [tool.ruff]

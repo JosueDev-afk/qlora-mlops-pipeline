@@ -78,7 +78,10 @@ not be able to write to the database or move an appointment.
 ### 4. Invalid model output is `ambiguous`, never an exception
 
 If output fails schema validation, treat it as `ambiguous` and retry. A parse
-failure must never crash a live call.
+failure must never crash a live call. The retry is **asking the caller again**
+(a reprompt, which counts toward the field's limit), never calling the model
+again: decoding is greedy, so the same input returns the same invalid output,
+and a second call would spend another 500 ms of the turn.
 
 **Exception — Task D (`is_real_interruption`).** It runs on ASR partials while
 the agent speaks: there is no retry (the next partial is the retry) and a
