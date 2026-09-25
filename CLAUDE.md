@@ -193,6 +193,7 @@ ElevenLabs SDK directly from a node or graph.
 | **No translation or localization** of English corpora | Their domains (hotels, restaurants) do not teach alphanumeric capture, they add translationese, and they were most of the GPU/API cost |
 | The only LLM-written corpus text is the **carrier-phrase bank** (1,000–2,000, human-reviewed) | Written with **Qwen3-8B**: open, no Cloud billing, larger than the arms under test. Never a free-tier API for corpus text: providers may train on what they receive |
 | Laya temperatures are fitted on a **human calibration split**, never on gold | Gold is mostly synthetic; a calibration fitted there may not transfer to real speech (H6) |
+| The calibration gate is **held-out ECE, per bucket**, with a minimum count | ECE on the data T was fitted to flatters it; pooling buckets lets Task B hide Task D; a temperature fitted on a handful of rows is noise. k-fold, `calibration.folds` and `min_per_bucket` |
 | The eval set includes **Task D** and **≥ 100 `call_rejected` turns** before freezing | Nothing can be added after week 3; with 40 rejections a 0.95 recall has a CI of ~0.84–0.99 |
 | Qwen3-4B is also trained on **Task B**, only as the H1 arm | Without it H1 has no generative arm. At runtime Task B stays on Laya |
 | Latency is measured **to complete JSON** on a fixed **L4** | LangGraph needs the whole output to act; p95s are only comparable on the same hardware |

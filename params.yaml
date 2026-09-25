@@ -100,6 +100,9 @@ calibration:
   # from the PR curve on the calibration split to reach this recall (H6).
   target_recall: 0.95
   split: data/calibration           # human-annotated; never gold (mostly synthetic), never the eval set
+  folds: 5                          # the gate is held-out ECE, never ECE on the data T was fitted to
+  min_per_bucket: 50                # fewer examples is an error, not a temperature fitted on noise
+  seed: 42
 
 # H1/H1b frontier arm: the only non-local component. Gemini API free tier, no
 # billing. Free-tier inputs may be used by Google, so only the frozen eval set
