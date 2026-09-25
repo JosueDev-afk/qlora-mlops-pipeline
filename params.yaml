@@ -62,7 +62,10 @@ laya:
 
 calibration:
   method: temperature_scaling
-  per: [question_type, n_options]   # one temperature per question shape
+  # One temperature per Laya bucket: question type x options (2, 3-5, 6-10, 11+).
+  # Fitted values must lie in [0.5, 5.0]: Laya clamps anything outside, and the
+  # server refuses a file it would alter.
+  per: [question_type, option_bucket]
   max_ece: 0.10                     # the DAG fails above this
   # The call_rejected threshold is derived, never set: calibrate_laya picks it
   # from the PR curve on the calibration split to reach this recall (H6).

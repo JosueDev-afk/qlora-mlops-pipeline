@@ -33,7 +33,7 @@ train = [
     "accelerate>=0.31",
     "xgboost>=2.0",
     "scikit-learn>=1.5",
-    "laya>=0.1",                # decision model, Tasks B and D
+    "laya>=0.3.20",             # decision model, Tasks B and D
 ]
 # Zone 2 — runtime. Latency-sensitive: no Spark, no torch.
 agent = [
@@ -50,7 +50,7 @@ agent = [
 # both models over HTTP on the same reference GPU (fair latency for H1).
 serve = [
     "vllm>=0.8",                # Qwen + QLoRA adapter, OpenAI-compatible API
-    "laya>=0.1",                # decision model, router preloaded at start-up
+    "laya[serve]>=0.3.20",      # decision model over its own /v1/systemone server
 ]
 dev = [
     "pytest>=8.2",

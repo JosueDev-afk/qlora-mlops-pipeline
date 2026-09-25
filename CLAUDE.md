@@ -93,13 +93,17 @@ Three rules, all from the model card, all easy to get wrong:
 
 - **Never the English root checkpoint.** It collapses on non-Latin script *while
   staying confident*, so confidence gating cannot save you. Spanish always uses
-  `laya-multilingual`.
+  `laya-multilingual`. Short Spanish ("sí, ahí estaré") carries no language
+  signal and the stock router sends it to English, so `src/serving/laya.py`
+  builds only the multilingual checkpoint and pins every request to it.
 - **Never lazy-load in a service.** Without preload the router rebuilds the
-  checkpoint on every language switch (7–10 s measured). Always
-  `Router(preload=True)` at start-up, never per request.
-- **Never threshold on raw probabilities.** Laya ships over-confident. Apply the
-  temperatures fitted by the `calibrate_laya` DAG before any comparison against
-  a threshold.
+  checkpoint on every language switch (7–10 s measured). Always preload at
+  start-up, never per request — but not with `Router(preload=True)`, which
+  also builds the English root.
+- **Never threshold on raw probabilities.** Laya ships over-confident. The
+  server applies the temperatures fitted by the `calibrate_laya` DAG to the
+  logits and stamps their `run_id` on every answer; the agent's client
+  refuses an answer with no stamp or another run's.
 - **Never hand-set the `call_rejected` threshold.** `calibrate_laya` derives it
   from the calibrated PR curve on the calibration split for
   `calibration.target_recall`, and stores it with the temperatures. Only the
@@ -190,6 +194,7 @@ ElevenLabs SDK directly from a node or graph.
 | Qwen3-4B is also trained on **Task B**, only as the H1 arm | Without it H1 has no generative arm. At runtime Task B stays on Laya |
 | Latency is measured **to complete JSON** on a fixed **L4** | LangGraph needs the whole output to act; p95s are only comparable on the same hardware |
 | Laya and Qwen are both **served over HTTP** from `src/serving/` | Keeps `src/agent/` torch-free, and H1 compares latencies over the same serving path |
+| Laya temperatures are applied **in the server**, on the logits | Laya rounds the probabilities it returns to 4 decimals; re-tempering them in the client is lossy and duplicates Laya's bucket logic |
 | Qwen3 runs with **thinking disabled** | Reasoning tokens would spend the 500 ms budget before the JSON |
 | **Everything runs locally** (MacBook Air M4, 16 GB) except GPU work | No Cloud billing, no Dataproc: Spark runs in local mode. Colab (Google AI Pro CCU) runs QLoRA, Laya fine-tuning and latency measurements, because the Mac has no CUDA for vLLM or bitsandbytes |
 | Docker services run **by profile**, never the whole stack at once | 16 GB does not fit Airflow, HDFS, Kafka, Postgres, MLflow and Metabase next to a Spark job. Only Postgres runs by default |

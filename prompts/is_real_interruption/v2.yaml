@@ -1,0 +1,36 @@
+id: is_real_interruption
+version: 2
+schema: schemas/is_real_interruption.schema.json
+model: laya-multilingual
+language: es-MX
+notes: >
+  Task D. Laya takes typed questions, not a system prompt: the answer space is
+  defined per request. This file holds the question definition and the criteria,
+  versioned exactly like a prompt because it plays the same role.
+  v2: Laya reads a noul question's criteria as the two option texts, keyed
+  false/true; v1 gave one string, which Laya rejects (422).
+questions:
+  interruption:
+    type: noul
+    instructions: >
+      La persona habló mientras el agente estaba hablando. ¿Quiere tomar el turno
+      (interrupción real) o sólo está acusando recibo (backchannel)?
+      Ante la duda, es interrupción: cortar de más molesta menos que atropellar
+      a quien quiere hablar.
+    criteria:
+      "false": >
+        backchannel: sólo confirma que escucha, sin aportar contenido
+        («ajá», «mhm», «sí sí», «órale», «ándele», «okey», «va», «claro»)
+      "true": >
+        interrupción real: corrige, objeta, pide repetición o cambia de tema
+        («no, espérese», «ese no es mi correo», «perdón, me equivoqué»,
+        «a ver, repítame», «ahorita no puedo»)
+  kind:
+    type: choice
+    instructions: ¿De qué tipo es la intervención?
+    criteria:
+      backchannel: acusa recibo sin tomar el turno
+      correction: corrige un dato que el agente dijo o capturó mal
+      objection: no está de acuerdo o no quiere continuar con el paso actual
+      rejection: no puede atender la llamada en este momento
+      unclear: no se distingue con la información disponible

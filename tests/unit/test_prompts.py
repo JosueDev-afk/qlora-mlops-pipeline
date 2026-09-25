@@ -102,3 +102,41 @@ def test_non_mapping_file_raises(tmp_path: Path) -> None:
     _write_prompt(tmp_path, "- just\n- a list\n")
     with pytest.raises(PromptError, match="mapping"):
         load_prompt("demo", version=1, root=tmp_path / "prompts")
+
+
+def _latest(paths: list[Path]) -> list[Path]:
+    by_id: dict[str, Path] = {}
+    for path in paths:
+        best = by_id.get(path.parent.name)
+        if best is None or int(path.stem[1:]) > int(best.stem[1:]):
+            by_id[path.parent.name] = path
+    return sorted(by_id.values())
+
+
+LAYA_QUESTION_FILES = [
+    p
+    for p in _latest(COMMITTED)
+    if "laya" in str(load_prompt(p.parent.name, int(p.stem[1:])).body.get("model", ""))
+]
+
+
+@pytest.mark.parametrize("path", LAYA_QUESTION_FILES, ids=lambda p: f"{p.parent.name}/{p.stem}")
+def test_laya_questions_have_the_shape_laya_accepts(path: Path) -> None:
+    """Mirrors laya.Agent._check_question (0.3.20), which answers 422 otherwise.
+
+    Only the latest version: older ones are frozen history and never served.
+    """
+    questions = load_prompt(path.parent.name, int(path.stem[1:])).body["questions"]
+    assert questions
+    for qid, question in questions.items():
+        assert question["type"] in {"choice", "score", "noul"}, qid
+        assert question.get("instructions"), qid
+        criteria = question.get("criteria")
+        if question["type"] == "choice":
+            assert isinstance(criteria, dict | list) and criteria, qid
+            labels = {str(k).lower() for k in criteria}
+            assert not labels & {"true", "false", "yes", "no", "si", "sí"}, qid  # model card
+        elif question["type"] == "score":
+            assert isinstance(criteria, list) and criteria and None not in criteria, qid
+        else:
+            assert criteria is None or set(criteria) <= {"true", "false"}, qid

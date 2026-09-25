@@ -43,7 +43,7 @@ eval:      ## Evaluate against the frozen eval set
 # ── agent ─────────────────────────────────────────────────────────
 serve:     ## Serve Qwen + adapter with vLLM (OpenAI-compatible)
 	python -m src.serving.qwen
-serve-laya: ## Serve Laya-multilingual with the router preloaded
+serve-laya: ## Serve Laya-multilingual, preloaded and calibrated (models/laya*)
 	python -m src.serving.laya
 demo:      ## Web voice demo (Pipecat over WebRTC)
 	python -m src.agent.demo.server
