@@ -44,7 +44,7 @@ agent = [
     "confluent-kafka>=2.4",
     "websockets>=13.0",         # Scribe v2 Realtime STT; ElevenLabs spoken directly, no SDK
     "openai>=1.35",             # OpenAI-compatible client for vLLM
-    "pipecat-ai>=0.0.50",       # real-time audio layer over WebRTC (demo)
+    "pipecat-ai[webrtc,runner]>=1.11",  # real-time audio layer over WebRTC (demo)
 ]
 # Zone 3 — model servers. torch lives here, never in the agent, which calls
 # both models over HTTP on the same reference GPU (fair latency for H1).

@@ -143,7 +143,9 @@ def build_graph(deps: FlowDeps, checkpointer: Any = None) -> Any:
     """Compile Flow 1. Pass a checkpointer to keep state across turns by call id."""
 
     def receive(state: ContactState) -> ContactState:
-        return {"say": ""}
+        # Per-turn fields: a turn that never reaches Qwen must not report the
+        # previous turn's call to telemetry.
+        return {"say": "", "last_model_call": None}
 
     def route_turn(state: ContactState) -> str:
         awaiting = state.get("awaiting", "start")

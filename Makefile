@@ -45,12 +45,12 @@ serve:     ## Serve Qwen + adapter with vLLM (OpenAI-compatible)
 	python -m src.serving.qwen
 serve-laya: ## Serve Laya-multilingual, preloaded and calibrated (models/laya*)
 	python -m src.serving.laya
-demo:      ## Web voice demo (Pipecat over WebRTC)
+demo:      ## Voice demo in the browser, Pipecat over WebRTC: http://localhost:7860/client
 	python -m src.agent.demo.server
 simulate:  ## Replay simulated calls to Kafka: make simulate ARGS="--calls 50 --speed 10"
 	python -m src.agent.telemetry.simulate $(ARGS)
-demo-text: ## Fallback text demo in Streamlit
-	streamlit run src/agent/demo/streamlit_app.py
+demo-text: ## The same call typed in a terminal (no audio, no ElevenLabs)
+	python -m src.agent.demo.text
 
 # ── exploration ───────────────────────────────────────────────────
 notebook:  ## Jupyter Lab on notebooks/ (exploration only, never imported)
