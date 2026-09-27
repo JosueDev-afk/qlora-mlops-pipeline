@@ -31,7 +31,7 @@ stages:
   build_gold:
     cmd: python -m src.pipeline.datasets.build_gold --out data/gold
     deps: [src/pipeline/datasets, data/augmented]
-    params: [gold.template_ratio, gold.replay_ratio, gold.target_size]
+    params: [gold.template_ratio, gold.replay_ratio, gold.target_size, gold.splits, gold.seed]
     outs: [data/gold]
 
   train_laya:

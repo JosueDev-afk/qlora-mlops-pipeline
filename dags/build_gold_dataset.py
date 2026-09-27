@@ -39,11 +39,16 @@ def build_gold_dataset():
         return gold_path
 
     @task
-    def version_and_tag(gold_path: str) -> str:
-        """dvc add + push, then tag the commit so the run is reproducible."""
+    def version(gold_path: str) -> str:
+        """dvc commit + push; returns the gold set's hash.
+
+        The git tag (gold.tag, read by both trainings) is created on the host
+        with `make tag-gold`: the container has no business committing to the
+        maintainer's branch.
+        """
         return tag_release.publish(gold_path)
 
-    version_and_tag(validate(filter_and_balance()))
+    version(validate(filter_and_balance()))
 
 
 build_gold_dataset()

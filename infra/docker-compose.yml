@@ -33,6 +33,8 @@ x-airflow: &airflow
     MLFLOW_TRACKING_URI: http://mlflow:5000
   volumes:
     - ..:/opt/project  # dags, src, params.yaml and data/ straight from the repo
+    # The DVC remote (.dvc/config: ../../dvc-storage), at the path it resolves to.
+    - ../../dvc-storage:/opt/dvc-storage
   working_dir: /opt/project
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:

@@ -31,8 +31,10 @@ generate:  ## Generate synthetic dialogues by code from their labels
 	$(DAG) generate_combinatorial
 augment:   ## Inject calibrated ASR noise (rule-based)
 	$(DAG) augment_asr_noise
-gold:      ## Build, version and tag the gold dataset
+gold:      ## Build, gate and version the gold dataset (DVC), then run make tag-gold
 	$(DAG) build_gold_dataset
+tag-gold:  ## On the host: commit dvc.lock and create the gold.tag git tag
+	python -m src.pipeline.datasets.tag_release tag
 train:     ## Fine-tune the generative model with QLoRA (tasks A, C; B as the H1 arm)
 	$(DAG) train_qlora
 train-laya: ## Fine-tune the decision model (tasks B, D)
@@ -68,4 +70,4 @@ lint:      ## Lint and type-check
 fmt:       ## Auto-format
 	ruff format src dags tests && ruff check --fix src dags tests
 
-.PHONY: help up down clean logs init ingest curate generate augment gold train train-laya calibrate eval serve serve-laya demo demo-text simulate notebook test test-all lint fmt
+.PHONY: help up down clean logs init ingest curate generate augment gold tag-gold train train-laya calibrate eval serve serve-laya demo demo-text simulate notebook test test-all lint fmt

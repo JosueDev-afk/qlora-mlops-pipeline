@@ -62,7 +62,8 @@ gold:
   target_size: 8000
   template_ratio: 0.75          # template vs LLM-paraphrased; swept in H4 (0.25/0.5/0.75/1.0)
   replay_ratio: 0.15            # general instruction data, guards against rigidity (H5b)
-  splits: {train: 0.8, val: 0.1, test: 0.1}
+  splits: {train: 0.8, val: 0.1, test: 0.1}   # by dialogue group, never by row
+  seed: 42
 
 train:
   base_model: Qwen/Qwen3-4B     # Apache-2.0. Qwen2.5-3B is research-license only.

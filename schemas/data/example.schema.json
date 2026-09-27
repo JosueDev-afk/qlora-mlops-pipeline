@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GoldExample",
+  "description": "One training example, as generate/augment write it to data/augmented and build_gold writes it to data/gold. The same rows feed Qwen (input -> output as chat) and Laya (input as state, output as the label), so H1 compares models, not data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "group", "task", "source", "input", "output"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "group": {
+      "type": "string", "minLength": 1,
+      "description": "The dialogue or item this example derives from. Every noise variant of one dialogue shares it, and a group never spans two splits."
+    },
+    "task": { "enum": ["extract_entity", "parse_datetime", "classify_intent", "is_real_interruption", "replay"] },
+    "source": {
+      "enum": ["template", "carrier", "replay"],
+      "description": "template: generated from a code template; carrier: built on the human-reviewed carrier-phrase bank (H4 sweeps their ratio); replay: general Spanish instruction data (H5b)"
+    },
+    "input": { "type": "object", "description": "The prompt variables of the task (transcript, field, context...); for replay, the instruction." },
+    "output": { "type": "object", "description": "Valid against schemas/<task>.schema.json; for replay, {\"response\": string}." },
+    "meta": {
+      "type": "object",
+      "description": "Provenance: generator, seed, persona, flow, applied WER. Never used as a feature.",
+      "properties": { "wer": { "type": "number", "minimum": 0, "maximum": 1 } }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "task": { "const": "replay" } } },
+      "then": { "properties": { "source": { "const": "replay" },
+                                "output": { "required": ["response"],
+                                            "properties": { "response": { "type": "string", "minLength": 1 } } } } },
+      "else": { "properties": { "source": { "enum": ["template", "carrier"] } } } }
+  ]
+}
