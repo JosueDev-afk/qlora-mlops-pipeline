@@ -65,12 +65,24 @@ Everything runs locally (developed on a MacBook Air M4, 16 GB) except GPU work:
 QLoRA, Laya fine-tuning and latency measurements run on Colab, because vLLM and
 bitsandbytes need CUDA. Local Spark needs a JDK 17 (`brew install openjdk@17`).
 
-The stack needs a Docker runtime (Docker Desktop, OrbStack or Colima) with about
-10 GB of memory. Services are grouped in compose profiles and started on demand;
-only Postgres runs by default.
+The stack needs a container runtime with Compose and about 10 GB of memory for
+its VM: Podman (what this project is developed on), Docker Desktop, OrbStack or
+Colima. `make` uses `docker` if it is installed and `podman` otherwise
+(`ENGINE=podman` forces it). With Podman, install the Compose CLI
+(`brew install docker-compose`, no Docker Desktop) so `podman compose` gets
+Compose's exact `depends_on` semantics, and give the machine enough memory:
+
+```bash
+podman machine init qlora --cpus 6 --memory 10240 --disk-size 60 --rootful
+podman machine start qlora
+```
+
+Services are grouped in compose profiles and started on demand; only Postgres
+runs by default.
 
 ```bash
 cp .env.example .env                    # fill in the API keys
+make up PROFILES=                       # postgres only
 make up                                 # postgres + pipeline (airflow, mlflow)
 make up PROFILES="pipeline streaming"   # add kafka
 make init                               # OLTP schema, lake dirs, kafka topics

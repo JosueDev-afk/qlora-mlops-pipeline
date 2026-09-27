@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := help
-COMPOSE  := docker compose --env-file .env -f infra/docker-compose.yml
+# Docker or Podman, whichever is installed; override with ENGINE=docker|podman.
+ENGINE   ?= $(shell command -v docker >/dev/null 2>&1 && echo docker || echo podman)
+COMPOSE  := $(ENGINE) compose --env-file .env -f infra/docker-compose.yml
 ALL      := --profile pipeline --profile streaming --profile bi --profile hdfs
 PROFILES ?= pipeline
 DAG      := $(COMPOSE) exec -T airflow-scheduler airflow dags trigger
@@ -9,7 +11,7 @@ help: ## Show this help
 	| awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n",$$1,$$2}'
 
 # ── infrastructure ────────────────────────────────────────────────
-up: ## Start postgres + PROFILES (default: pipeline). make up PROFILES="pipeline streaming"
+up: ## Start postgres + PROFILES (default: pipeline). PROFILES= for postgres only
 	$(COMPOSE) $(foreach p,$(PROFILES),--profile $(p)) up -d --build
 down: ## Stop every service, whatever profile started it
 	$(COMPOSE) $(ALL) down

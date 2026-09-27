@@ -3,7 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
-COMPOSE="docker compose --env-file .env -f infra/docker-compose.yml"
+# Docker or Podman, whichever is installed; override with ENGINE=docker|podman.
+ENGINE="${ENGINE:-$(command -v docker >/dev/null 2>&1 && echo docker || echo podman)}"
+COMPOSE="$ENGINE compose --env-file .env -f infra/docker-compose.yml"
 
 echo "→ postgres schema"
 $COMPOSE exec -T postgres psql -U "${POSTGRES_USER:-agent}" -d "${POSTGRES_DB:-voice_agent}" \
@@ -13,7 +15,8 @@ echo "→ lake directories"
 mkdir -p data/bronze data/silver data/gold
 
 # Kafka belongs to the `streaming` profile; skip it when that profile is down.
-if $COMPOSE ps --status running --services | grep -qx kafka; then
+# `exec` works on every compose implementation; `ps --status` is Docker Compose v2 only.
+if $COMPOSE exec -T kafka true >/dev/null 2>&1; then
   echo "→ kafka topics"
   for t in calls.events calls.transcripts model.inferences; do
     $COMPOSE exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 \
