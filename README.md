@@ -95,7 +95,7 @@ make down                               # stops every profile
 |---|---|---|
 | core | Postgres | localhost:5432 |
 | `pipeline` | Airflow (Spark runs inside, `local[*]`) | http://localhost:8080 |
-| `pipeline` | MLflow | http://localhost:5000 |
+| `pipeline` | MLflow | http://localhost:5001 (5000 is macOS AirPlay) |
 | `streaming` | Kafka | localhost:29092 |
 | `bi` | Metabase | http://localhost:3000 |
 | `hdfs` | HDFS namenode (amd64, emulated; demo only) | http://localhost:9870 |

@@ -24,6 +24,9 @@ x-airflow: &airflow
   environment: &airflow-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor  # no Celery, no Redis: saves ~1 GB
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    # Every DAG has schedule=None, so unpaused never means "runs by itself";
+    # paused would leave `make <stage>` triggers queued forever.
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
     AIRFLOW__CORE__DAGS_FOLDER: /opt/project/dags
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/airflow
     PYTHONPATH: /opt/project
@@ -86,13 +89,25 @@ services:
       dockerfile: infra/mlflow/Dockerfile
     image: qlora-mlops/mlflow:local
     profiles: [pipeline]
-    ports: ["5000:5000"]
+    # 5001 on the host: macOS keeps 5000 for the AirPlay Receiver. Containers
+    # still reach it at http://mlflow:5000.
+    ports: ["5001:5000"]
     volumes:
       - mlflow:/mlflow
     # Artifacts are proxied by the server (--serve-artifacts), so clients need
     # no shared volume or object store.
+    # MLflow 3 also starts a job runner and ~7 huey consumers for server-side
+    # GenAI jobs (~220 MB each, 1.7 GB in all); this project runs none, so they
+    # are off, and the server idles at ~370 MB instead.
+    environment:
+      MLFLOW_SERVER_ENABLE_JOB_EXECUTION: "false"
+    # One worker: MLflow 3 starts four by default, each a full copy (~200 MB),
+    # which a single-user local server does not need. MLflow 3 also rejects
+    # Host headers other than localhost and private IPs, so the service name
+    # Airflow uses is allowed explicitly.
     command: >
-      mlflow server --host 0.0.0.0 --port 5000
+      mlflow server --host 0.0.0.0 --port 5000 --workers 1
+      --allowed-hosts mlflow,mlflow:5000,localhost,localhost:5001,127.0.0.1,127.0.0.1:5001
       --backend-store-uri sqlite:////mlflow/mlflow.db
       --artifacts-destination /mlflow/artifacts --serve-artifacts
     mem_limit: 768m
