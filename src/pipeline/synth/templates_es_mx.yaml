@@ -1,0 +1,91 @@
+# SEED templates for code-generated examples (source: template).
+#
+# Choosing personas and variation axes is the maintainer's call (CLAUDE_CODE_PLAN,
+# "Tasks to keep for yourself"): review, correct and extend everything here before
+# a gold set is built from it. Every phrase is text the models learn from.
+# Editing this file changes the corpus: DVC reruns `generate` when it changes.
+version: 1
+
+# Labels the generator writes. `absent`: the caller did not give the value, and
+# the model is sure of that. `ambiguous`: heard, but the spelling cannot be known.
+confidence: {clear: 0.95, ambiguous: 0.5, absent: 0.9}
+
+# How a persona wraps a value it dictates ({value} is the spoken value), and the
+# fillers it puts before a short answer. Keys must match synth.personas.
+personas:
+  cooperative:
+    wrap: ["{value}", "claro, {value}", "sí, mire, {value}", "con gusto, {value}"]
+    lead: ["", "sí, ", "claro, "]
+  rushed:
+    wrap: ["{value}", "{value}, ¿ya?", "ajá, {value}", "rápido, {value}"]
+    lead: ["", "ya, "]
+  distracted:
+    wrap: ["este... {value}", "eh, sí, sí, {value}", "a ver, deje veo, {value}", "mmm, {value}"]
+    lead: ["este... ", "eh... ", "mmm, "]
+  suspicious:
+    wrap: ["¿y para qué lo quiere? bueno, {value}", "¿de parte de quién? ah, bueno, {value}", "¿es seguro esto? bueno, {value}"]
+    lead: ["mmm, ", "a ver, "]
+  hard_of_hearing:
+    wrap: ["¿cómo dice? ah, {value}", "¿mande? ah, sí, {value}", "no le escuché bien... ah, {value}"]
+    lead: ["¿mande? ", "¿cómo? ah, "]
+  monosyllabic:
+    wrap: ["{value}"]
+    lead: [""]
+
+# Synthetic names only. Ximena/Jimena and Ibarra/Ybarra sound alike: said aloud
+# they are ambiguous by construction, spelled they are not.
+names:
+  first: [Juan, José Luis, María, María de la Luz, Guadalupe, Ximena, Jimena, Valeria, Fernanda,
+          Sofía, Alejandro, Miguel Ángel, Carlos, Rocío, Yolanda, Héctor, Iván, Ivonne, Ramón, Leticia]
+  last: [García, Hernández, López, Martínez, González, Pérez, Rodríguez, Sánchez, Ramírez, Flores,
+         Ibarra, Ybarra, Cervantes, Zamora, Vázquez, De la Rosa, Del Ángel, Ortiz, Navarro, Salinas]
+email_domains: [gmail.com, hotmail.com, outlook.com, yahoo.com.mx, icloud.com, live.com.mx, prodigy.net.mx]
+
+# extract_entity: share of examples where the value is missing or unusable.
+negatives_share: 0.15
+negatives:
+  not_provided:
+    name: ["¿para qué quiere mi nombre?", "prefiero no decirle", "¿quién habla?"]
+    phone: ["no me lo sé de memoria", "¿para qué lo necesita?", "luego se lo paso", "es el mismo al que me marcó"]
+    email: ["no tengo correo", "no me acuerdo cuál es", "mejor luego se lo mando", "no uso correo"]
+
+# classify_intent: phrases per label, and the agent line they answer, per flow.
+intents:
+  confirmed: ["sí", "sí, correcto", "así es", "claro que sí", "correcto", "ajá, sí", "exacto",
+              "sí, sin problema", "sí, ahí estaré", "sí, ahí nos vemos"]
+  cannot_attend: ["no voy a poder ir ese día", "fíjese que no voy a poder asistir",
+                  "ese día tengo otro compromiso", "no creo llegar a la cita", "voy a tener que cancelar la cita"]
+  call_rejected: ["ahorita no puedo", "voy manejando", "márqueme después", "estoy en el trabajo, luego le marco",
+                  "ahorita estoy ocupado", "no puedo hablar ahorita", "estoy en una junta"]
+  ambiguous: ["mmm", "a ver...", "pues no sé", "este...", "bueno", "quién sabe", "a lo mejor"]
+  out_of_scope: ["¿quién habla?", "¿de dónde sacaron mi número?", "¿de qué empresa me habla?",
+                 "¿cuánto cuesta la consulta?", "¿dónde queda la clínica?"]
+flows:
+  validate_contact:
+    labels: [confirmed, call_rejected, ambiguous, out_of_scope]
+    context: ["¿Me podría decir su nombre completo, por favor?", "Tengo Juan Pérez. ¿Es correcto?",
+              "¿Me podría dictar su número de celular a diez dígitos?", "Tengo 81 82 34 56 78. ¿Es correcto?",
+              "¿Me podría decir su correo electrónico?"]
+  confirm_appointment:
+    labels: [confirmed, cannot_attend, call_rejected, ambiguous, out_of_scope]
+    context: ["Le llamo para confirmar su cita de mañana a las diez. ¿Podrá asistir?",
+              "Su cita es hoy a las cuatro de la tarde. ¿Nos confirma su asistencia?",
+              "¿Le parece bien el jueves a las once?"]
+
+# is_real_interruption: what the agent was saying, and the kind of every real
+# interruption in synth.real_interruptions (plus a few more). Backchannels come
+# from synth.backchannels.
+agent_utterances: ["Buen día, le llamo de Clínica Norte para confirmar sus datos de contacto.",
+                   "Tengo juan punto perez arroba gmail punto com. ¿Es correcto?",
+                   "Tengo 81 82 34 56 78. ¿Es correcto?",
+                   "Le llamo para confirmar su cita de mañana a las diez de la mañana.",
+                   "Perfecto, quedó registrado. ¿Me podría dictar su número de celular a diez dígitos?"]
+interruption_kinds:
+  "no, espérese": objection
+  "ese no es mi correo": correction
+  "perdón, me equivoqué": correction
+  "a ver, repítame": objection      # asks to stop the current step; review the label
+extra_real_interruptions:
+  "ahorita no puedo": rejection
+  "voy manejando": rejection
+  "no, así no es": correction
