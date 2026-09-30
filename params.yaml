@@ -54,6 +54,7 @@ augment:
   wer_levels: [0.05, 0.10, 0.15, 0.25]
   variants_per_dialogue: 10
   emphasis: alphanumeric        # emails and phone numbers are the failure point
+  seed: 42
 
 gold:
   tag: gold-v1                  # single source of truth: train_qlora and

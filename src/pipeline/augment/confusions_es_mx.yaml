@@ -1,0 +1,82 @@
+# PROVISIONAL confusion tables for rule-based ASR noise (augment.method: rules).
+#
+# Written from known es-MX ASR failure modes, not measured. Plan task 10
+# (notebooks/02_asr_error_profile.ipynb, the maintainer's) measures Scribe v2 on
+# CIEMPIESS and dictated values; replace these tables and weights with what it
+# finds. Editing this file changes the corpus: DVC reruns `augment`.
+version: 1
+
+# Share of edits by operation, when the token allows it.
+operations: {substitute: 0.6, delete: 0.2, insert: 0.2}
+
+# Whole-word confusions, in two kinds, because they relabel differently:
+#
+# homophones: the same sound written another way ("sero" for "cero"), or a
+# near-homophone a listener resolves from context ("siente" in a run of digits).
+# The dictated value is still recoverable, so the label does not change: this is
+# exactly the robustness the fine-tuned model must learn and the rules lack.
+homophones:
+  cero: [sero]
+  seis: [ceis]
+  cien: [sien]
+  uno: [un]
+  siete: [siente]
+  nueve: [llueve]
+  cuatro: [cuarto]
+  zeta: [seta]
+  ce: [se]
+  erre: [ere]
+  arroba: [a roba]
+  punto: [puntos]
+  gmail: [g mail, jimeil]
+  hotmail: [jotmeil]
+  outlook: [autluk]
+
+# mishearings: another word that means another value ("setenta" for "sesenta",
+# "ene" for "eme"). What was heard is now the value: the label becomes it when
+# it is still well formed, and "ask again" when it is not.
+mishearings:
+  sesenta: [setenta]
+  setenta: [sesenta]
+  tres: [trece]
+  trece: [tres]
+  dos: [doce]
+  doce: [dos]
+  eme: [ene]
+  ene: [eme]
+  be: [ve, de]
+  ve: [be]
+  de: [te]
+  te: [de]
+  pe: [te, be]
+  ese: [ce]
+  ele: [el]
+  jota: [hota]
+
+# Spelling-level rules for any other word, applied once at a random match.
+# Each is [pattern, replacement]; they keep the sound, so they are homophones:
+# recoverable in a phone or email, an unknown spelling in a name.
+characters:
+  - [v, b]
+  - [b, v]
+  - [z, s]
+  - [ce, se]
+  - [ci, si]
+  - [ll, y]
+  - [x, j]
+  - [ge, je]
+  - [gi, ji]
+  - [á, a]
+  - [é, e]
+  - [í, i]
+  - [ó, o]
+  - [ú, u]
+
+# Function words ASR drops ("treinta y cuatro" -> "treinta cuatro").
+deletable: [de, el, la, los, las, a, y, que, pues, este, eh, es, mi]
+
+# Never deleted or changed: noise must not flip the meaning of a turn.
+protected: ["no", "sí", "si", nunca, ya, tampoco, nada, puedo, voy, cancelar, ahorita, después, correcto, perdón]
+
+# What ASR inserts: fillers and hesitations.
+fillers: [eh, este, mmm, o sea, pues, ah]

@@ -26,7 +26,8 @@ stages:
   augment:
     cmd: python -m src.pipeline.augment.run --out data/augmented
     deps: [src/pipeline/augment, data/silver, data/synthetic]
-    params: [augment.method, augment.wer_levels, augment.variants_per_dialogue]
+    params: [augment.method, augment.wer_levels, augment.variants_per_dialogue, augment.emphasis,
+             augment.seed]
     outs: [data/augmented]
 
   build_gold:

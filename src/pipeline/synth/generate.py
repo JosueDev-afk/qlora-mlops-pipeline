@@ -180,6 +180,7 @@ class Generator:
         in every case: the model must ask again, never complete it by guessing."""
         reason = rng.choice(NEGATIVES[field])
         spoken: str | None = None
+        span: list[int] | None = None
         if reason == "not_provided":
             transcript = rng.choice(self.templates["negatives"]["not_provided"][field])
         else:
@@ -195,15 +196,16 @@ class Generator:
                     " arroba "
                 )
                 spoken = f"{head} arroba {domain.split(' punto ')[0]}"
-            transcript = rng.choice(self.templates["personas"][persona]["wrap"]).replace(
-                "{value}", spoken
-            )
+            wrap = rng.choice(self.templates["personas"][persona]["wrap"])
+            start = wrap.index("{value}")
+            span = [start, start + len(spoken)]
+            transcript = wrap.replace("{value}", spoken)
         output = {"field": field, "normalized_value": None, "raw_span": spoken,
                   "confidence": self.templates["confidence"]["absent"], "needs_reprompt": True,
                   "reprompt_reason": reason}  # fmt: skip
         return self._example("extract_entity", index,
                              {"field": field, "transcript": transcript, "asr_confidence": None},
-                             output, persona=persona, style=reason, value_span=None)  # fmt: skip
+                             output, persona=persona, style=reason, value_span=span)  # fmt: skip
 
     def extract_entity(self, index: int) -> dict[str, Any]:
         rng = self._rng("extract_entity", index)
