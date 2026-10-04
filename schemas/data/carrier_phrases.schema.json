@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CarrierPhrasesOutput",
+  "description": "What Qwen3-8B returns for one carrier-phrase request. Candidates are filtered and then reviewed by a human before any reaches the corpus.",
+  "type": "object",
+  "required": ["phrases"],
+  "properties": {
+    "phrases": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+  }
+}

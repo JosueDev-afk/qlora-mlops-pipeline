@@ -131,27 +131,26 @@ class Generator:
     templates: Templates
     personas: list[str]
     seed: int
+    carrier: tuple[dict[str, Any], ...] = ()  # approved bank entries (carrier.approved)
     _spaces: dict[str, list[tuple[Any, ...]]] = field(default_factory=dict, repr=False)
 
     def _rng(self, task: str, index: int) -> random.Random:
         return random.Random(f"{self.seed}:{task}:{index}")
 
     def _example(self, task: str, index: int, inputs: dict[str, Any], output: dict[str, Any],
-                 **meta: Any) -> dict[str, Any]:  # fmt: skip
-        example_id = f"syn-{task}-{index:06d}"
+                 *, source: str = "template", **meta: Any) -> dict[str, Any]:  # fmt: skip
+        example_id = f"syn-{task}-{'c' if source == 'carrier' else ''}{index:06d}"
+        generator = (f"templates_es_mx@v{self.templates.version}" if source == "template"
+                     else f"carrier_bank:{meta.get('carrier_id')}")  # fmt: skip
         return {
             "schema_version": 1,
             "id": example_id,
             "group": example_id,  # augment's noise variants will share it
             "task": task,
-            "source": "template",
+            "source": source,
             "input": inputs,
             "output": output,
-            "meta": {
-                "generator": f"templates_es_mx@v{self.templates.version}",
-                "seed": self.seed,
-                **meta,
-            },  # fmt: skip
+            "meta": {"generator": generator, "seed": self.seed, **meta},
         }
 
     # ── Task A ─────────────────────────────────────────────────────────────
@@ -211,12 +210,17 @@ class Generator:
         rng = self._rng("extract_entity", index)
         field = FIELDS[index % len(FIELDS)]
         persona = rng.choice(self.personas)
-        conf = self.templates["confidence"]
-        base = {"field": field, "normalized_value": None, "raw_span": None}
-
         if rng.random() < self.templates["negatives_share"]:
             return self._negative(rng, index, field, persona)
 
+        frame = rng.choice(self.templates["personas"][persona]["wrap"])
+        return self._dictated(rng, index, field, persona, frame)
+
+    def _dictated(self, rng: random.Random, index: int, field: str, persona: str, frame: str,
+                  *, source: str = "template", **meta: Any) -> dict[str, Any]:  # fmt: skip
+        """A spoken value inside a frame: a persona wrap, or an approved carrier phrase."""
+        conf = self.templates["confidence"]
+        base = {"field": field, "normalized_value": None, "raw_span": None}
         if field == "name":
             spoken, canonical, ambiguous = self._name(rng)
             style = "said" if ", " not in spoken else "said_spelled"
@@ -229,26 +233,20 @@ class Generator:
             style = rng.choice(EMAIL_STYLES)
             spoken, ambiguous = speak_email(canonical, style, rng), False
 
-        wrap = rng.choice(self.templates["personas"][persona]["wrap"])
-        start = wrap.index("{value}")
-        transcript = wrap.replace("{value}", spoken)
+        start = frame.index("{value}")
+        transcript = frame.replace("{value}", spoken)
         if ambiguous:  # heard, but the spelling cannot be known: ask, never guess
             output = {**base, "raw_span": spoken, "confidence": conf["ambiguous"],
                       "needs_reprompt": True, "reprompt_reason": "low_confidence"}  # fmt: skip
         else:
             value = normalize_name(canonical) if field == "name" else canonical
-            output = {
-                **base,
-                "normalized_value": value,
-                "raw_span": spoken,
-                "confidence": conf["clear"],
-                "needs_reprompt": False,
-                "reprompt_reason": None,
-            }
+            output = {**base, "normalized_value": value, "raw_span": spoken,
+                      "confidence": conf["clear"], "needs_reprompt": False,
+                      "reprompt_reason": None}  # fmt: skip
         return self._example("extract_entity", index,
                              {"field": field, "transcript": transcript, "asr_confidence": None},
-                             output, persona=persona, style=style,
-                             value_span=[start, start + len(spoken)])  # fmt: skip
+                             output, source=source, persona=persona, style=style,
+                             value_span=[start, start + len(spoken)], **meta)  # fmt: skip
 
     # ── Task B ─────────────────────────────────────────────────────────────
 
@@ -266,6 +264,21 @@ class Generator:
 
     def _combinations(self, task: str) -> list[tuple[Any, ...]]:
         t = self.templates
+        if task == "carrier_classify_intent":
+            return [
+                (flow, context, entry["label"], entry["text"], entry["persona"], entry["id"])
+                for entry in self._bank("classify_intent")
+                for flow, spec in sorted(t["flows"].items())
+                if entry["label"] in spec["labels"]
+                for context in spec["context"]
+            ]
+        if task == "carrier_is_real_interruption":
+            return [
+                (utterance, position, entry["text"], entry["label"], entry["id"])
+                for entry in self._bank("is_real_interruption")
+                for utterance in t["agent_utterances"]
+                for position in range(1, len(utterance.split()))
+            ]
         if task == "classify_intent":
             leads = sorted({(lead, p) for p in self.personas for lead in t["personas"][p]["lead"]})
             return [
@@ -285,11 +298,18 @@ class Generator:
             for phrase, kind in phrases
         ]
 
-    def capacity(self, task: str) -> int | None:
-        """How many distinct examples the templates allow; None when unbounded."""
+    def capacity(self, task: str, source: str = "template") -> int | None:
+        """How many distinct examples are possible; None when unbounded."""
+        if source == "carrier":
+            if task == "extract_entity":
+                return None if self._bank(task) else 0
+            return len(self._space(f"carrier_{task}"))
         return (
             len(self._space(task)) if task in ("classify_intent", "is_real_interruption") else None
         )
+
+    def _bank(self, task: str) -> list[dict[str, Any]]:
+        return sorted((e for e in self.carrier if e["task"] == task), key=lambda e: e["id"])
 
     def classify_intent(self, index: int) -> dict[str, Any]:
         flow, context, label, transcript, persona = self._space("classify_intent")[index]
@@ -312,8 +332,41 @@ class Generator:
         }
         return self._example("is_real_interruption", index, inputs, output, position=position)
 
-    def generate(self, task: str, index: int) -> dict[str, Any]:
-        return dict(getattr(self, task)(index))
+    # ── carrier phrases: approved by a person, values still filled by code ──
+
+    def carrier_extract_entity(self, index: int) -> dict[str, Any]:
+        entries = self._bank("extract_entity")
+        entry = entries[index % len(entries)]  # every phrase in turn, a new value each time
+        rng = self._rng("carrier_extract_entity", index)
+        return self._dictated(rng, index, entry["label"], entry["persona"], entry["text"],
+                              source="carrier", carrier_id=entry["id"])  # fmt: skip
+
+    def carrier_classify_intent(self, index: int) -> dict[str, Any]:
+        flow, context, label, text, persona, carrier_id = self._space("carrier_classify_intent")[
+            index
+        ]
+        inputs = {"flow": flow, "context": context, "transcript": text}
+        output = {"intent": label, "confidence": self.templates["confidence"]["clear"]}
+        return self._example("classify_intent", index, inputs, output, source="carrier",
+                             persona=persona, flow=flow, carrier_id=carrier_id)  # fmt: skip
+
+    def carrier_is_real_interruption(self, index: int) -> dict[str, Any]:
+        utterance, position, text, kind, carrier_id = self._space("carrier_is_real_interruption")[
+            index
+        ]
+        output = {"interruption": kind != "backchannel",
+                  "confidence": self.templates["confidence"]["clear"], "kind": kind}  # fmt: skip
+        inputs = {
+            "agent_utterance": utterance,
+            "agent_said": " ".join(utterance.split()[:position]),
+            "transcript": text,
+        }
+        return self._example("is_real_interruption", index, inputs, output, source="carrier",
+                             position=position, carrier_id=carrier_id)  # fmt: skip
+
+    def generate(self, task: str, index: int, source: str = "template") -> dict[str, Any]:
+        method = f"carrier_{task}" if source == "carrier" else task
+        return dict(getattr(self, method)(index))
 
 
 def spoken_digits(digits: str) -> str:

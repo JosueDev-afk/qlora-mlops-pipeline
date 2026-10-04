@@ -21,6 +21,7 @@ from typing import Any
 from src.common.config import load_params, param
 from src.common.log import configure_logging, get_logger
 from src.pipeline.datasets.examples import invalid_reason, write_jsonl
+from src.pipeline.synth.carrier import approved
 from src.pipeline.synth.generate import TASKS, TEMPLATES, Generator, load_templates
 
 OUT = Path("data/synthetic")
@@ -38,22 +39,26 @@ def per_task(n: int) -> dict[str, int]:
     return {task: base + (1 if i < extra else 0) for i, task in enumerate(TASKS)}
 
 
-def capped(generator: Generator, requested: dict[str, int]) -> dict[str, int]:
+def capped(
+    generator: Generator, requested: dict[str, int], source: str = "template"
+) -> dict[str, int]:
     """Never more rows than distinct examples: the rest would be duplicates."""
     counts = {}
     for task, n in requested.items():
-        capacity = generator.capacity(task)
+        capacity = generator.capacity(task, source)
         counts[task] = n if capacity is None else min(n, capacity)
-        if counts[task] < n:
+        if counts[task] < n and source == "template":
             log.warning("template_space_exhausted", task=task, requested=n, distinct=capacity,
                         hint="more volume needs the carrier-phrase bank and augment")  # fmt: skip
     return counts
 
 
-def generate(generator: Generator, counts: dict[str, int]) -> dict[str, list[dict[str, Any]]]:
+def generate(
+    generator: Generator, counts: dict[str, int], source: str = "template"
+) -> dict[str, list[dict[str, Any]]]:
     out: dict[str, list[dict[str, Any]]] = {}
     for task, n in counts.items():
-        rows = [generator.generate(task, i) for i in range(n)]
+        rows = [generator.generate(task, i, source) for i in range(n)]
         bad = [(r["id"], reason) for r in rows if (reason := invalid_reason(r))]
         if bad:
             raise GenerationError(f"{task}: {len(bad)} invalid rows, first: {bad[:3]}")
@@ -92,8 +97,23 @@ def summary(parts: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
     }
 
 
-def run(params_path: str = "params.yaml", *, out: Path = OUT, templates: Path = TEMPLATES) -> str:
+def run(
+    params_path: str = "params.yaml",
+    *,
+    out: Path = OUT,
+    templates: Path = TEMPLATES,
+    bank: Path | None = None,
+) -> str:
+    """Template examples always; carrier examples from the approved bank, if any."""
     params = load_params(params_path)
+    bank = bank or Path(param(params, "synth.carrier_phrases.bank"))
+    phrases = approved(bank)
+    if not phrases:
+        log.warning(
+            "carrier_bank_empty",
+            bank=str(bank),
+            hint="template examples only; build_gold needs carrier ones unless template_ratio is 1",
+        )
     personas = list(param(params, "synth.personas"))
     loaded = load_templates(
         personas,
@@ -102,10 +122,12 @@ def run(params_path: str = "params.yaml", *, out: Path = OUT, templates: Path = 
         templates,
     )
     seed = int(param(params, "synth.seed"))
-    generator = Generator(loaded, personas, seed)
+    generator = Generator(loaded, personas, seed, carrier=tuple(phrases))
     requested = per_task(int(param(params, "synth.n_dialogues")))
-    counts = capped(generator, requested)
-    parts = generate(generator, counts)
+    parts = generate(generator, capped(generator, requested))
+    carrier_parts = generate(generator, capped(generator, requested, "carrier"), "carrier")
+    for task, rows in carrier_parts.items():
+        parts[task] = parts[task] + rows
 
     staging = out.with_name(f".{out.name}.tmp")
     shutil.rmtree(staging, ignore_errors=True)
@@ -122,6 +144,13 @@ def run(params_path: str = "params.yaml", *, out: Path = OUT, templates: Path = 
         },  # fmt: skip
         "requested": requested,
         "template_space": {t: generator.capacity(t) for t in requested},
+        "carrier": {
+            "bank": str(bank),
+            "sha256": hashlib.sha256(bank.read_bytes()).hexdigest() if bank.is_file() else None,
+            "approved": len(phrases),
+            "space": {t: generator.capacity(t, "carrier") for t in requested},
+            "rows": {t: len(r) for t, r in carrier_parts.items()},
+        },
         "counts": summary(parts),
     }
     (staging / MANIFEST).write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")

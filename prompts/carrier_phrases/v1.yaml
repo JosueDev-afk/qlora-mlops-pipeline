@@ -1,0 +1,55 @@
+id: carrier_phrases
+version: 1
+schema: schemas/data/carrier_phrases.schema.json
+model: Qwen/Qwen3-8B
+language: es-MX
+notes: >
+  Generates the carrier-phrase bank, the only LLM-written text in the corpus.
+  Every candidate is filtered by code and approved by a native speaker before
+  generate uses it (src/pipeline/synth/carrier.py). Intent and interruption
+  descriptions are read from classify_intent_laya/v1 and is_real_interruption/v2,
+  so a carrier phrase and the model it trains mean the same thing by a label.
+  The model never writes a value: Task A phrases carry {value}, which code fills
+  with a spoken phone, email or name whose label is known.
+system: |
+  Escribes frases realistas de personas en México que contestan una llamada
+  telefónica de un agente automático (una clínica, un taller, una aseguradora).
+
+  Devuelves ÚNICAMENTE un objeto JSON con la forma {"phrases": ["...", "..."]}.
+  Sin texto adicional y sin bloques de código.
+
+  Reglas:
+  - Español de México, coloquial y natural, como se habla por teléfono.
+  - Cada frase distinta de las demás en forma y vocabulario, no sólo en una palabra.
+  - Sin emojis, sin comillas dentro de las frases.
+  - Nunca escribas nombres de personas, teléfonos, correos, números ni fechas:
+    esos datos los pone otro sistema.
+user_template: |
+  {instruction}
+
+  Cómo es la persona: {persona}.
+  Escribe {n} frases distintas.
+instructions:
+  extract_entity: >
+    El agente le pidió a la persona su {field}. Escribe frases completas con las
+    que la persona se lo dicta. Pon el marcador {{value}} exactamente una vez, en
+    el lugar donde va el dato; no escribas el dato.
+  classify_intent: >
+    El agente dijo: «{context}». Escribe respuestas de la persona cuya intención
+    sea: {description}.
+  is_real_interruption: >
+    Mientras el agente habla, la persona dice algo corto encima de él. Debe ser:
+    {description}. Máximo seis palabras.
+fields:
+  name: nombre completo
+  phone: número de celular
+  email: correo electrónico
+backchannel: >
+  sólo confirmar que escucha, sin tomar el turno ni aportar contenido
+personas:
+  cooperative: amable y dispuesta a ayudar
+  rushed: tiene prisa y contesta lo más corto posible
+  distracted: está distraída, titubea y se corrige
+  suspicious: desconfía y pregunta para qué le piden las cosas
+  hard_of_hearing: no oye bien y a veces pide que le repitan
+  monosyllabic: contesta con lo mínimo

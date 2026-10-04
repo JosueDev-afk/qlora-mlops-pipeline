@@ -18,7 +18,7 @@ stages:
 
   generate:
     cmd: python -m src.pipeline.synth.run --out data/synthetic
-    deps: [src/pipeline/synth]
+    deps: [src/pipeline/synth, data/carrier_phrases]
     params: [synth.n_dialogues, synth.personas, synth.seed, synth.carrier_phrases,
              synth.backchannels, synth.real_interruptions]
     outs: [data/synthetic]

@@ -48,6 +48,11 @@ synth:
   carrier_phrases:
     target_count: 1500            # 1,000–2,000, reviewed by a native speaker
     generator: Qwen/Qwen3-8B      # open model, no Cloud billing; larger than the arms under test
+    bank: data/carrier_phrases/v1.jsonl   # human-reviewed: DVC + a copy off this disk
+    shares: {extract_entity: 0.4, classify_intent: 0.4, is_real_interruption: 0.2}
+    overgenerate: 1.5             # the filter and the review reject some
+    per_request: 10
+    temperature: 0.9              # diversity; every request still has its own seed
 
 augment:
   method: rules                 # phonetic confusion tables; CPU only
