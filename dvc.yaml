@@ -14,6 +14,7 @@ stages:
   curate:
     cmd: python -m src.pipeline.curate.run --in data/bronze --out data/silver
     deps: [src/pipeline/curate, data/bronze]
+    params: [curate.replay, ingest.sources.aya_es]
     outs: [data/silver]
 
   generate:

@@ -32,7 +32,22 @@ ingest:
       license: cc-by-sa-4.0     # share-alike
       purpose: es-MX audio for the Scribe v2 error profile
       verified: false
-    # spanish_instructions: replay data (H5b), still to be chosen and audited.
+    aya_es:
+      kind: hf_dataset
+      repo_id: CohereLabs/aya_dataset
+      revision: f9ea04583f02a8f86404ff6c58bf75fe637df8a2
+      allow_patterns: [data/train-*.parquet]   # every language; curate keeps Spanish
+      license: apache-2.0
+      purpose: general-instruction replay in Spanish (H5b), human-written
+      verified: false
+
+# What curate keeps from bronze. Replay is general instruction data, not speech:
+# it is cleaned and de-duplicated, never noised.
+curate:
+  replay:
+    source: aya_es
+    language: Spanish
+    max_words: 250                # per side; long answers do not fit a voice agent's turn
 
 synth:
   n_dialogues: 30000

@@ -9,7 +9,7 @@ Audit each source **before** investing effort in it (Ola 1, week 2).
 |---|---|---|---|---|---|
 | MASSIVE | Intents/slots, multilingual (es-ES, used as is) | CC BY 4.0 (card) | ☐ | | |
 | CallCenterEN / AIxBlock | Call center transcripts (curated, not translated) | CC BY-NC 4.0 (card: "commercial use, resale, or redistribution is prohibited") | ☐ | | |
-| Spanish general-instruction dataset (to be chosen; candidates below) | Replay data (H5b) | | ☐ | | |
+| Aya dataset, Spanish rows (CohereLabs/aya_dataset) | Replay data (H5b), chosen 2026-10-03 | Apache-2.0 (card) | ☐ | | |
 | CIEMPIESS Light | es-MX audio (ASR error profile) | CC BY-SA 4.0 (card) | ☐ | | |
 | Qwen3-4B | Base model | Apache-2.0 | ☑ | Yes | Yes |
 | Qwen3-1.7B | Base model (H5a arm) | Apache-2.0 | ☐ | | |
@@ -29,7 +29,7 @@ Open questions before ticking:
 - **CIEMPIESS Light is share-alike.** Only its audio's error profile (via
   Scribe v2) is used; decide whether anything derived from it is redistributed.
 
-### Replay candidates (H5b), surveyed 2026-10-03
+### Replay candidates (H5b), surveyed 2026-10-03 — Aya chosen
 
 The gold set needs `gold.replay_ratio` x `gold.target_size` = 1,200 replay rows.
 Human-written data only: translated English sets add translationese, and sets
