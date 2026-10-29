@@ -22,14 +22,16 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import shutil
 import sys
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
-from src.agent.graphs.flow_validate_contact import (
+from src.agent.graphs.speech_es import (
     ASK,
     CONFIRM,
     DEFERRED,
@@ -49,6 +51,7 @@ from src.agent.telemetry.producer import (
     TelemetrySink,
     topic_for,
 )
+from src.common.config import load_params, param
 from src.common.log import configure_logging, get_logger
 
 FIRST = ["juan", "maria", "jose", "ana", "luis", "sofia", "carlos", "fernanda", "miguel", "valeria"]
@@ -227,17 +230,82 @@ def simulate_call(
     return end("completed" if all(r == "validated" for r in results.values()) else "partial")
 
 
+def _calls(
+    calls: int, *, seed: int, start: datetime, mean_arrival_s: float
+) -> Iterator[list[dict[str, Any]]]:
+    """One call's events at a time, with exponential arrivals: memory stays flat."""
+    rng = random.Random(seed)
+    arrival = start
+    for _ in range(calls):
+        yield simulate_call(rng, arrival)
+        arrival += timedelta(seconds=rng.expovariate(1 / mean_arrival_s))
+
+
 def simulate(
     calls: int, *, seed: int, start: datetime, mean_arrival_s: float = 30.0
 ) -> list[dict[str, Any]]:
     """`calls` overlapping calls, merged into one stream ordered by time."""
-    rng = random.Random(seed)
-    events: list[dict[str, Any]] = []
-    arrival = start
-    for _ in range(calls):
-        events.extend(simulate_call(rng, arrival))
-        arrival += timedelta(seconds=rng.expovariate(1 / mean_arrival_s))
+    events = [e for call in _calls(calls, seed=seed, start=start, mean_arrival_s=mean_arrival_s)
+              for e in call]  # fmt: skip
     return sorted(events, key=lambda e: (e["ts"], e["call_id"], e["seq"]))
+
+
+def write_bronze(
+    out: Path,
+    calls: int,
+    *,
+    seed: int,
+    start: datetime,
+    mean_arrival_s: float = 30.0,
+    rows_per_file: int = 100_000,
+) -> dict[str, Any]:
+    """Land a simulated stream in bronze as JSONL, the shape Kafka would archive.
+
+    The batch twin of the streaming path: the same events and schema, written
+    call by call in files of `rows_per_file`, so a million events never sit in
+    memory together. Order across calls is Spark's job, not this writer's.
+    The partition is replaced whole, and its manifest records what produced it.
+    """
+    staging = out.with_name(f".{out.name}.tmp")
+    shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True)
+    files, rows, part, handle = [], 0, 0, None
+    try:
+        for call in _calls(calls, seed=seed, start=start, mean_arrival_s=mean_arrival_s):
+            for event in call:
+                if handle is None or rows % rows_per_file == 0:
+                    if handle:
+                        handle.close()
+                    name = f"part-{part:05d}.jsonl"
+                    handle = (staging / name).open("w")
+                    files.append(name)
+                    part += 1
+                handle.write(json.dumps(event, ensure_ascii=False) + "\n")
+                rows += 1
+    finally:
+        if handle:
+            handle.close()
+    manifest = {"source": "telemetry_simulator", "synthetic": True, "calls": calls, "seed": seed,
+                "start": start.isoformat(), "mean_arrival_s": mean_arrival_s, "events": rows,
+                "files": files, "schema": "schemas/events/call_event.schema.json"}  # fmt: skip
+    (staging / "_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    shutil.rmtree(out, ignore_errors=True)
+    staging.rename(out)
+    log.info("telemetry_bronze_written", out=str(out), calls=calls, events=rows)
+    return manifest
+
+
+BRONZE = Path("data/bronze/telemetry")
+
+
+def simulate_to_bronze(params_path: str = "params.yaml", root: Path = BRONZE) -> str:
+    """The DAG's first task: today's partition of simulated calls, per params.yaml."""
+    settings = param(load_params(params_path), "telemetry")
+    now = datetime.now(UTC)
+    out = root / f"ingest_date={now.date().isoformat()}"
+    write_bronze(out, int(settings["calls"]), seed=int(settings["seed"]), start=now,
+                 mean_arrival_s=float(settings["mean_arrival_s"]))  # fmt: skip
+    return str(out)
 
 
 def replay(
@@ -269,9 +337,14 @@ def main(argv: list[str] | None = None) -> None:
         help="from the host; containers use kafka:9092",
     )
     parser.add_argument("--stdout", action="store_true", help="print JSONL instead of producing")
+    parser.add_argument("--bronze", type=Path, default=None, help="write a bronze partition here")
     args = parser.parse_args(argv)
 
     configure_logging()
+    if args.bronze:
+        write_bronze(args.bronze, args.calls, seed=args.seed, start=datetime.now(UTC),
+                     mean_arrival_s=args.mean_arrival_s)  # fmt: skip
+        return
     events = simulate(
         args.calls, seed=args.seed, start=datetime.now(UTC), mean_arrival_s=args.mean_arrival_s
     )

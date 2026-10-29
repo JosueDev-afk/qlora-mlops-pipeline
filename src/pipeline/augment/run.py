@@ -18,6 +18,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import time
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ from src.common.config import load_params, param
 from src.common.log import configure_logging, get_logger
 from src.pipeline.augment.noise import CONFUSIONS, load_confusions
 from src.pipeline.augment.variants import make_variant
+from src.pipeline.common.tracking import log_stage
 from src.pipeline.datasets.examples import REPLAY, invalid_reason, read_jsonl, write_jsonl
 
 SYNTHETIC = Path("data/synthetic")
@@ -96,6 +98,7 @@ def run(
     out: Path = OUT,
     confusions: Path = CONFUSIONS,
 ) -> str:
+    started = time.perf_counter()
     params = load_params(params_path)
     method = str(param(params, "augment.method"))
     if method != "rules":
@@ -134,6 +137,11 @@ def run(
     shutil.rmtree(out, ignore_errors=True)
     staging.rename(out)
     log.info("augmented", out=str(out), **manifest["rows"])
+    log_stage("augment", seconds=time.perf_counter() - started,
+              params=dict(param(params, "augment")),
+              metrics={"rows": manifest["rows"], "labels": manifest["labels"],
+                       "wer_applied_mean": manifest["wer_applied_mean"]},
+              artifact=manifest)  # fmt: skip
     return str(out)
 
 

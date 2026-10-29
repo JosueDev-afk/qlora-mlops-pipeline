@@ -14,12 +14,14 @@ import argparse
 import hashlib
 import json
 import shutil
+import time
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from src.common.config import load_params, param
 from src.common.log import configure_logging, get_logger
+from src.pipeline.common.tracking import log_stage
 from src.pipeline.datasets.examples import invalid_reason, write_jsonl
 from src.pipeline.synth.carrier import approved
 from src.pipeline.synth.generate import TASKS, TEMPLATES, Generator, load_templates
@@ -105,6 +107,7 @@ def run(
     bank: Path | None = None,
 ) -> str:
     """Template examples always; carrier examples from the approved bank, if any."""
+    started = time.perf_counter()
     params = load_params(params_path)
     bank = bank or Path(param(params, "synth.carrier_phrases.bank"))
     phrases = approved(bank)
@@ -157,6 +160,12 @@ def run(
     shutil.rmtree(out, ignore_errors=True)
     staging.rename(out)
     log.info("synthetic_generated", out=str(out), **{t: len(r) for t, r in parts.items()})
+    log_stage("generate", seconds=time.perf_counter() - started,
+              params={"seed": seed, "n_dialogues": sum(requested.values()),
+                      "templates_version": loaded.version, "carrier_approved": len(phrases)},
+              metrics={"rows": {t: len(r) for t, r in parts.items()},
+                       "carrier_rows": {t: len(r) for t, r in carrier_parts.items()}},
+              artifact=manifest)  # fmt: skip
     return str(out)
 
 

@@ -39,7 +39,7 @@ ingest:
       allow_patterns: [data/train-*.parquet]   # every language; curate keeps Spanish
       license: apache-2.0
       purpose: general-instruction replay in Spanish (H5b), human-written
-      verified: false
+      verified: true
 
 # What curate keeps from bronze. Replay is general instruction data, not speech:
 # it is cleaned and de-duplicated, never noised.
@@ -77,14 +77,23 @@ augment:
   seed: 42
 
 gold:
-  tag: gold-v1                  # single source of truth: train_qlora and
+  # gold-v0 is H4's template-only arm (template_ratio 1.0), published while the
+  # carrier-phrase bank is reviewed; gold-v1 restores 0.75 and 8000 once it is.
+  # Task D's template space caps a template-only set near 6000.
+  tag: gold-v0                  # single source of truth: train_qlora and
                                 # train_laya must consume the same tag for H1
                                 # to be a comparison of models, not of data
-  target_size: 8000
-  template_ratio: 0.75          # template vs LLM-paraphrased; swept in H4 (0.25/0.5/0.75/1.0)
+  target_size: 6000
+  template_ratio: 1.0           # template vs carrier phrases; swept in H4 (0.25/0.5/0.75/1.0)
   replay_ratio: 0.15            # general instruction data, guards against rigidity (H5b)
   splits: {train: 0.8, val: 0.1, test: 0.1}   # by dialogue group, never by row
   seed: 42
+
+# Simulated call telemetry: the >= 1M-event stream Spark processes (Phase 3 MVP).
+telemetry:
+  calls: 15000                  # ~86 events per call: ~1.3M events
+  seed: 7
+  mean_arrival_s: 4.0           # ~17 h of traffic, so hourly KPIs have a shape
 
 train:
   base_model: Qwen/Qwen3-4B     # Apache-2.0. Qwen2.5-3B is research-license only.

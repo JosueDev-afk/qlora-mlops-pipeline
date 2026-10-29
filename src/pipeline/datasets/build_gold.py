@@ -24,12 +24,14 @@ import hashlib
 import json
 import random
 import shutil
+import time
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from src.common.config import load_params, param
 from src.common.log import configure_logging, get_logger
+from src.pipeline.common.tracking import log_stage
 from src.pipeline.datasets.examples import (
     REPLAY,
     SPLITS,
@@ -152,6 +154,7 @@ def counts(parts: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
 
 def run(params_path: str = "params.yaml", *, inputs: Path = INPUTS, out: Path = OUT) -> str:
     """Build data/gold (replacing it whole) and return its path."""
+    started = time.perf_counter()
     params = load_params(params_path)
     target_size = int(param(params, "gold.target_size"))
     template_ratio = float(param(params, "gold.template_ratio"))
@@ -179,6 +182,10 @@ def run(params_path: str = "params.yaml", *, inputs: Path = INPUTS, out: Path = 
     shutil.rmtree(out, ignore_errors=True)
     staging.rename(out)
     log.info("gold_built", out=str(out), **{s: len(p) for s, p in parts.items()})
+    log_stage("build_gold", seconds=time.perf_counter() - started, params=settings,
+              metrics={"rows": {s: len(p) for s, p in parts.items()},
+                       "inputs": {k: input_stats[k] for k in ("read", "invalid", "duplicates")}},
+              artifact=manifest)  # fmt: skip
     return str(out)
 
 

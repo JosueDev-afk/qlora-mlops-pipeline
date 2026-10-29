@@ -41,6 +41,12 @@ train-laya: ## Fine-tune the decision model (tasks B, D)
 	$(DAG) train_laya
 calibrate: ## Re-fit Laya temperatures: make calibrate RUN_ID=<train_laya run>
 	$(DAG) calibrate_laya --conf '{"run_id":"$(RUN_ID)"}'
+analytics: ## Simulated telemetry -> Spark -> warehouse KPIs (DAG telemetry_analytics)
+	$(DAG) telemetry_analytics
+baselines: ## Rule-based and majority baselines on the gold test split
+	$(DAG) evaluate_baselines
+laya-zero-shot: ## Laya before fine-tuning on the gold test split (on the Mac, CPU)
+	MLFLOW_TRACKING_URI=http://localhost:5001 python -m src.pipeline.evaluate.laya_zero_shot
 eval:      ## Evaluate against the frozen eval set
 	$(DAG) evaluate_model
 
@@ -70,4 +76,4 @@ lint:      ## Lint and type-check
 fmt:       ## Auto-format
 	ruff format src dags tests && ruff check --fix src dags tests
 
-.PHONY: help up down clean logs init ingest curate generate augment gold tag-gold train train-laya calibrate eval serve serve-laya demo demo-text simulate notebook test test-all lint fmt
+.PHONY: help up down clean logs init ingest curate generate augment gold tag-gold analytics baselines laya-zero-shot train train-laya calibrate eval serve serve-laya demo demo-text simulate notebook test test-all lint fmt

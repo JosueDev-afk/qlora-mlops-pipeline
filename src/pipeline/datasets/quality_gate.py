@@ -17,6 +17,7 @@ Either layer failing raises QualityGateError after the report is written.
 from __future__ import annotations
 
 import json
+import time
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -24,6 +25,7 @@ from typing import Any
 
 from src.common.config import load_params, param
 from src.common.log import get_logger
+from src.pipeline.common.tracking import log_stage
 from src.pipeline.datasets.build_gold import MANIFEST
 from src.pipeline.datasets.examples import (
     REPLAY,
@@ -181,6 +183,7 @@ def assert_expectations(
     report: Path = REPORT,
 ) -> None:
     """Write the report; raise if any check failed."""
+    started = time.perf_counter()
     params = load_params(params_path)
     gold = Path(gold_path)
     parts = load_gold(gold)
@@ -196,13 +199,20 @@ def assert_expectations(
     checks.append(Check("manifest_present", (gold / MANIFEST).is_file()))
     checks += gx_checks(parts, target_size=target_size)
     failed = [c for c in checks if not c.passed]
-    report.parent.mkdir(parents=True, exist_ok=True)
-    report.write_text(json.dumps({
+    result = {
         "gold": str(gold),
         "held_out_texts": len(held_out),
         "passed": not failed,
         "checks": [asdict(c) for c in checks],
-    }, indent=2, ensure_ascii=False) + "\n")  # fmt: skip
+    }
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+    # Logged before raising: a rejected gold set is a result too.
+    log_stage("quality_gate", seconds=time.perf_counter() - started,
+              params={"gold_tag": param(params, "gold.tag")},
+              metrics={"passed": int(not failed), "checks_failed": len(failed),
+                       "check": {c.name.replace(":", "."): int(c.passed) for c in checks}},
+              artifact=result)  # fmt: skip
     if failed:
         raise QualityGateError(
             "gold quality gate failed:\n  " + "\n  ".join(f"{c.name}: {c.detail}" for c in failed)

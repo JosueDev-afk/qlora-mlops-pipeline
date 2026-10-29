@@ -6,6 +6,7 @@ that keeps talking when unsure) must fail at load time, not halfway through a
 training run or a live call.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -24,7 +25,7 @@ def _write(tmp_path: Path, mutate) -> Path:
 
 def test_committed_params_satisfy_every_rule() -> None:
     params = load_params()
-    assert param(params, "gold.tag") == "gold-v1"
+    assert re.fullmatch(r"gold-v\d+", param(params, "gold.tag"))
 
 
 def test_param_reads_dotted_paths() -> None:

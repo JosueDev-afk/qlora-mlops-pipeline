@@ -22,6 +22,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import time
 import urllib.request
 from collections.abc import Callable
 from datetime import UTC, date, datetime
@@ -30,6 +31,7 @@ from typing import Any
 
 from src.common.config import load_params
 from src.common.log import configure_logging, get_logger
+from src.pipeline.common.tracking import log_stage
 from src.pipeline.ingest.sources import Source, load_sources
 
 MANIFEST = "_manifest.json"
@@ -188,7 +190,17 @@ def ingest_named(name: str, params_path: str = "params.yaml", bronze: Path = BRO
     sources = load_sources(load_params(params_path))
     if name not in sources:
         raise KeyError(f"no source {name!r} in ingest.sources")
-    return str(ingest_source(sources[name], bronze))
+    started = time.perf_counter()
+    partition = ingest_source(sources[name], bronze)
+    manifest = json.loads((partition / MANIFEST).read_text())
+    log_stage(
+        f"ingest_{name}",
+        seconds=time.perf_counter() - started,
+        params={k: manifest[k] for k in ("source", "origin", "pin", "license", "ingest_date")},
+        metrics={"bytes": manifest["total_bytes"], "files": len(manifest["files"])},
+        artifact=manifest,
+    )
+    return str(partition)
 
 
 def main(argv: list[str] | None = None) -> None:

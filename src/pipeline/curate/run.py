@@ -17,11 +17,13 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import time
 from pathlib import Path
 from typing import Any
 
 from src.common.config import load_params, param
 from src.common.log import configure_logging, get_logger
+from src.pipeline.common.tracking import log_stage
 from src.pipeline.curate.replay import curate
 from src.pipeline.datasets.examples import invalid_reason, write_jsonl
 from src.pipeline.ingest.run import find_existing
@@ -83,7 +85,11 @@ def curate_replay(params: dict[str, Any], bronze: Path, out: Path) -> dict[str, 
 
 
 def run(params_path: str = "params.yaml", *, bronze: Path = BRONZE, out: Path = SILVER) -> str:
-    curate_replay(load_params(params_path), bronze, out)
+    started = time.perf_counter()
+    manifest = curate_replay(load_params(params_path), bronze, out)
+    log_stage("curate_replay", seconds=time.perf_counter() - started,
+              params={"source": manifest["source"], "pin": manifest["pin"], **manifest["settings"]},
+              metrics=manifest["rows"], artifact=manifest)  # fmt: skip
     return str(out)
 
 
