@@ -31,14 +31,21 @@ READERS = {"phone": spoken_to_e164, "email": normalize_email}
 log = get_logger(__name__)
 
 
-def rules_on_task_a(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Exact match and wrong-value rate of the normalizers, by field and noise level."""
+def rules_on_task_a(rows: list[dict[str, Any]], *, oracle_span: bool = False) -> dict[str, Any]:
+    """Exact match and wrong-value rate of the normalizers, by field and noise level.
+
+    By default the rules read the whole utterance, as they would in production.
+    With `oracle_span` they read only the dictated value (raw_span): perfect
+    segmentation, the best the rule approach could do. The gap between the two
+    is the error that segmentation, not noise, causes.
+    """
     totals: dict[str, Counter[str]] = defaultdict(Counter)
     for row in rows:
         if row["task"] != "extract_entity" or row["input"]["field"] not in READERS:
             continue
         field = row["input"]["field"]
-        predicted = READERS[field](row["input"]["transcript"])
+        text = (row["output"].get("raw_span") or "") if oracle_span else row["input"]["transcript"]
+        predicted = READERS[field](text)
         label = row["output"]["normalized_value"]
         level = f"wer_{row.get('meta', {}).get('wer_target', 0.0)}"
         for bucket in ("all", field, level):
@@ -68,6 +75,7 @@ def majority(rows: list[dict[str, Any]], task: str, key: str) -> dict[str, Any]:
 def evaluate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "task_a_rules": rules_on_task_a(rows),
+        "task_a_rules_oracle_span": rules_on_task_a(rows, oracle_span=True),
         "task_b_majority": majority(rows, "classify_intent", "intent"),
         "task_d_majority": majority(rows, "is_real_interruption", "interruption"),
     }

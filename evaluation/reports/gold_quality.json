@@ -1,0 +1,87 @@
+{
+  "gold": "data/gold",
+  "held_out_texts": 0,
+  "passed": true,
+  "checks": [
+    {
+      "name": "splits_present",
+      "passed": true,
+      "detail": "{'train': 4799, 'val': 635, 'test': 566}"
+    },
+    {
+      "name": "row_count",
+      "passed": true,
+      "detail": "6000 of 6000"
+    },
+    {
+      "name": "rows_valid",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "name": "ids_unique",
+      "passed": true,
+      "detail": "0 repeated"
+    },
+    {
+      "name": "no_group_leakage",
+      "passed": true,
+      "detail": "0 groups: []"
+    },
+    {
+      "name": "replay_share",
+      "passed": true,
+      "detail": "0.1500 (want 0.15)"
+    },
+    {
+      "name": "template_share",
+      "passed": true,
+      "detail": "1.0000 (want 1.0)"
+    },
+    {
+      "name": "tasks_in_every_split",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "name": "no_eval_or_calibration_overlap",
+      "passed": true,
+      "detail": "0 rows: []"
+    },
+    {
+      "name": "manifest_present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "gx:ExpectTableRowCountToEqual:table",
+      "passed": true,
+      "detail": "{\"observed_value\": 6000}"
+    },
+    {
+      "name": "gx:ExpectColumnValuesToBeUnique:id",
+      "passed": true,
+      "detail": "{\"element_count\": 6000, \"unexpected_count\": 0, \"unexpected_percent\": 0.0, \"partial_unexpected_list\": [], \"missing_count\": 0, \"missing_percent\": 0.0, \"unexpected_percent_total\": 0.0, \"unexpected_percent_nonmissing\": 0.0, \"partial_unexpected_counts\": [], \"partial_unexpected_index_list\": []}"
+    },
+    {
+      "name": "gx:ExpectColumnValuesToNotBeNull:group",
+      "passed": true,
+      "detail": "{\"element_count\": 6000, \"unexpected_count\": 0, \"unexpected_percent\": 0.0, \"partial_unexpected_list\": [], \"partial_unexpected_counts\": [], \"partial_unexpected_index_list\": []}"
+    },
+    {
+      "name": "gx:ExpectColumnValuesToBeInSet:task",
+      "passed": true,
+      "detail": "{\"element_count\": 6000, \"unexpected_count\": 0, \"unexpected_percent\": 0.0, \"partial_unexpected_list\": [], \"missing_count\": 0, \"missing_percent\": 0.0, \"unexpected_percent_total\": 0.0, \"unexpected_percent_nonmissing\": 0.0, \"partial_unexpected_counts\": [], \"partial_unexpected_index_list\": []}"
+    },
+    {
+      "name": "gx:ExpectColumnValuesToBeInSet:source",
+      "passed": true,
+      "detail": "{\"element_count\": 6000, \"unexpected_count\": 0, \"unexpected_percent\": 0.0, \"partial_unexpected_list\": [], \"missing_count\": 0, \"missing_percent\": 0.0, \"unexpected_percent_total\": 0.0, \"unexpected_percent_nonmissing\": 0.0, \"partial_unexpected_counts\": [], \"partial_unexpected_index_list\": []}"
+    },
+    {
+      "name": "gx:ExpectColumnValuesToBeInSet:split",
+      "passed": true,
+      "detail": "{\"element_count\": 6000, \"unexpected_count\": 0, \"unexpected_percent\": 0.0, \"partial_unexpected_list\": [], \"missing_count\": 0, \"missing_percent\": 0.0, \"unexpected_percent_total\": 0.0, \"unexpected_percent_nonmissing\": 0.0, \"partial_unexpected_counts\": [], \"partial_unexpected_index_list\": []}"
+    }
+  ]
+}

@@ -140,6 +140,15 @@ def test_rules_baseline_counts_wrong_values_apart_from_refusals() -> None:
     assert results["email"]["exact_match"] == 1.0
 
 
+def test_oracle_span_reads_only_the_value() -> None:
+    noisy = task_a(
+        "con gusto, ocho uno ocho dos tres cuatro cinco seis siete ocho", "+528182345678"
+    )
+    noisy["output"]["raw_span"] = "ocho uno ocho dos tres cuatro cinco seis siete ocho"
+    assert rules_on_task_a([noisy])["all"]["exact_match"] == 0.0  # "con gusto" blocks the rule
+    assert rules_on_task_a([noisy], oracle_span=True)["all"]["exact_match"] == 1.0
+
+
 def test_majority_is_the_floor() -> None:
     rows = [
         row("classify_intent", {}, {"intent": i}) for i in ["confirmed"] * 3 + ["call_rejected"]
