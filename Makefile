@@ -5,6 +5,10 @@ COMPOSE  := $(ENGINE) compose --env-file .env -f infra/docker-compose.yml
 ALL      := --profile pipeline --profile streaming --profile bi --profile hdfs
 PROFILES ?= pipeline
 DAG      := $(COMPOSE) exec -T airflow-scheduler airflow dags trigger
+# Host targets (python, pytest, ruff) use the project venv without activating it.
+ifneq ($(wildcard .venv/bin/python),)
+export PATH := $(CURDIR)/.venv/bin:$(PATH)
+endif
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
