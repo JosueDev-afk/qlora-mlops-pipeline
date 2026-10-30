@@ -1,0 +1,31 @@
+schema: '2.0'
+stages:
+  build_gold:
+    cmd: python -m src.pipeline.datasets.build_gold --out data/gold
+    deps:
+    - path: data/augmented
+      hash: md5
+      md5: 9da239415f11377c0acf5570da86033f.dir
+      size: 100933056
+      nfiles: 5
+    - path: src/pipeline/datasets
+      hash: md5
+      md5: 07cf4f415b917c3c87319ef7967b7b0d.dir
+      size: 73656
+      nfiles: 10
+    params:
+      params.yaml:
+        gold.replay_ratio: 0.15
+        gold.seed: 42
+        gold.splits:
+          train: 0.8
+          val: 0.1
+          test: 0.1
+        gold.target_size: 6000
+        gold.template_ratio: 1.0
+    outs:
+    - path: data/gold
+      hash: md5
+      md5: 4c6d27fe276edec4b0e77831cd711251.dir
+      size: 3985220
+      nfiles: 4
