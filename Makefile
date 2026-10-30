@@ -5,10 +5,8 @@ COMPOSE  := $(ENGINE) compose --env-file .env -f infra/docker-compose.yml
 ALL      := --profile pipeline --profile streaming --profile bi --profile hdfs
 PROFILES ?= pipeline
 DAG      := $(COMPOSE) exec -T airflow-scheduler airflow dags trigger
-# Host targets (python, pytest, ruff) use the project venv without activating it.
-ifneq ($(wildcard .venv/bin/python),)
-export PATH := $(CURDIR)/.venv/bin:$(PATH)
-endif
+# Host targets run in the project venv whether or not it is activated.
+PYTHON   ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python)
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -38,7 +36,7 @@ augment:   ## Inject calibrated ASR noise (rule-based)
 gold:      ## Build, gate and version the gold dataset (DVC), then run make tag-gold
 	$(DAG) build_gold_dataset
 tag-gold:  ## On the host: commit dvc.lock and create the gold.tag git tag
-	python -m src.pipeline.datasets.tag_release tag
+	$(PYTHON) -m src.pipeline.datasets.tag_release tag
 train:     ## Fine-tune the generative model with QLoRA (tasks A, C; B as the H1 arm)
 	$(DAG) train_qlora
 train-laya: ## Fine-tune the decision model (tasks B, D)
@@ -50,34 +48,34 @@ analytics: ## Simulated telemetry -> Spark -> warehouse KPIs (DAG telemetry_anal
 baselines: ## Rule-based and majority baselines on the gold test split
 	$(DAG) evaluate_baselines
 laya-zero-shot: ## Laya before fine-tuning on the gold test split (on the Mac, CPU)
-	MLFLOW_TRACKING_URI=http://localhost:5001 python -m src.pipeline.evaluate.laya_zero_shot
+	MLFLOW_TRACKING_URI=http://localhost:5001 $(PYTHON) -m src.pipeline.evaluate.laya_zero_shot
 eval:      ## Evaluate against the frozen eval set
 	$(DAG) evaluate_model
 
 # ── agent ─────────────────────────────────────────────────────────
 serve:     ## Serve Qwen + adapter with vLLM (OpenAI-compatible)
-	python -m src.serving.qwen
+	$(PYTHON) -m src.serving.qwen
 serve-laya: ## Serve Laya-multilingual, preloaded and calibrated (models/laya*)
-	python -m src.serving.laya
+	$(PYTHON) -m src.serving.laya
 demo:      ## Voice demo in the browser, Pipecat over WebRTC: http://localhost:7860/client
-	python -m src.agent.demo.server
+	$(PYTHON) -m src.agent.demo.server
 simulate:  ## Replay simulated calls to Kafka: make simulate ARGS="--calls 50 --speed 10"
-	python -m src.agent.telemetry.simulate $(ARGS)
+	$(PYTHON) -m src.agent.telemetry.simulate $(ARGS)
 demo-text: ## The same call typed in a terminal (no audio, no ElevenLabs)
-	python -m src.agent.demo.text
+	$(PYTHON) -m src.agent.demo.text
 
 # ── exploration ───────────────────────────────────────────────────
 notebook:  ## Jupyter Lab on notebooks/ (exploration only, never imported)
-	jupyter lab notebooks/
+	$(PYTHON) -m jupyter lab notebooks/
 
 # ── quality ───────────────────────────────────────────────────────
 test:      ## Unit tests (no infrastructure required)
-	pytest tests/unit -q
+	$(PYTHON) -m pytest tests/unit -q
 test-all:  ## All tests, infrastructure required
-	pytest tests -q
+	$(PYTHON) -m pytest tests -q
 lint:      ## Lint and type-check
-	ruff check src dags tests && mypy src
+	$(PYTHON) -m ruff check src dags tests && $(PYTHON) -m mypy src
 fmt:       ## Auto-format
-	ruff format src dags tests && ruff check --fix src dags tests
+	$(PYTHON) -m ruff format src dags tests && $(PYTHON) -m ruff check --fix src dags tests
 
 .PHONY: help up down clean logs init ingest curate generate augment gold tag-gold analytics baselines laya-zero-shot train train-laya calibrate eval serve serve-laya demo demo-text simulate notebook test test-all lint fmt
